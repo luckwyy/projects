@@ -15,9 +15,7 @@ def calu_plus(a, b, y_):
     for i in range(len(b)):
         a[i] = a[i] + b[i]
         if y_:
-            process_.append(str(a[i])+"\n")
-            process_.append(str(b[i])+"\n")
-            process_.append(str(a[i])+"\n")
+            process_.append("{}\n+{}\n_______\n={}".format(000000, b[i], a[i]))
 
     # 处理每个空中大于10的部分
     for i in range(len(a)):
@@ -25,7 +23,7 @@ def calu_plus(a, b, y_):
         if a[i] >= 10:
             a[i] = a[i] - 10
             if y_:
-                process_.append(str(a[i])+"\n")
+                process_.append("")
             if i == (len(a)-1):
                 a += [1]
             else:
