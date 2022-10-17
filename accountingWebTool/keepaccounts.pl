@@ -33,7 +33,7 @@ sub get_date_time () {
 sub get_user_data_path {
   my $user = shift;
   my ($year, $month, $day) = get_year_month_day();
-  my $userdata_path = "./kadata/$user/$year/$month";
+  my $userdata_path = "$root_path/$user/$year/$month";
   `mkdir -p $userdata_path` unless -d $userdata_path;
   return $userdata_path;
 };
@@ -330,7 +330,7 @@ sub get_days_oc_all_by_date_start_end {
 # by ywang 862024320@qq.com
 use Data::Dumper;
 # get a person all oc.txt path
-# return person->year->month->[./kadata/ywang/2022/10/oc01.txt,./kadata/ywang/2022/10/oc12.txt]
+# return person->year->month->[$root_path/ywang/2022/10/oc01.txt,$root_path/ywang/2022/10/oc12.txt]
 sub get_user_all_txts_path {
   my $user = shift;
   my $txts = {};
@@ -433,8 +433,8 @@ sub replace_name {
 # check enter route legal
 sub check_user_route_legal {
   my $user = shift;
-  my $path = './kadata/legal_name.txt';
-  `mkdir ./kadata; touch $path; echo user:ywang >> $path` unless -e $path;
+  my $path = "$root_path/legal_name.txt";
+  `mkdir $root_path; touch $path; echo user:ywang >> $path` unless -e $path;
   `echo user:ywang01 >> $path` unless -e $path;
   `echo user:ywang02 >> $path` unless -e $path;
   `echo user:ywang03 >> $path` unless -e $path;
@@ -633,7 +633,7 @@ get '/:user/:oper' => sub ($c) {
     return;
   }
   if ($oper eq 'removealldata') {
-    `rm -rf ./kadata/$user`;
+    `rm -rf $root_path/$user`;
     $c->render(text => 'ok');
     return;
   } elsif ($oper eq 'ic') {
