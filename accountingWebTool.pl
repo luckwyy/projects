@@ -419,6 +419,15 @@ sub check_name {
   }
 };
 
+# replace_name, check and replace special char
+sub replace_name {
+  my $n = shift;
+  # ${$n} =~ s/ /SPACE/g;
+  # ${$n} =~ s/\:/COLON/g;
+  # ${$n} =~ s/\./DOT/g;
+  return ${$n} =~ s/[ \:\.\,\-\_\[\]\+\=\#\*\$\%\^\\\/\!\`\'\"\;\?\>\<\|]/SPCHAR/g;
+};
+
 # check enter route legal
 sub check_user_route_legal {
   my $user = shift;
@@ -448,7 +457,7 @@ post '/set_ic' => sub ($c) {
     return;
   }
 
-  set_ic_txt_line_data($user, $icname, $ic) if check_number($ic) and check_name($icname);
+  set_ic_txt_line_data($user, $icname, $ic) if check_number($ic) and replace_name(\$icname);
  
   $c->redirect_to($user);
 };
@@ -462,7 +471,7 @@ post '/set_oc' => sub ($c) {
     return;
   }
 
-  set_oc_txt_line_data($user, $ocname, $oc) if check_number($oc) and check_name($ocname);
+  set_oc_txt_line_data($user, $ocname, $oc) if check_number($oc) and replace_name(\$ocname);
 
   $c->redirect_to($user);
 };
