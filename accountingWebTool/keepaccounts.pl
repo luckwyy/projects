@@ -695,7 +695,9 @@ get '/delete_txt_line/:user/:y/:m/#txt/:content' => sub ($c) {
     open(my $in,  "<",  "$root_path/$user/$y/$m/$txt")  or die "Can't open input.txt: $!";
     while (<$in>) {     # assigns each line in turn to $_
       chomp;
-      push(@txts_content_arrs, $_) if $_ ne decode_base64($content);
+      my $tmp_md5 = `echo '$_' | md5sum | cut -d ' ' -f1`;
+      chomp($tmp_md5); # remove '\n', it is important
+      push(@txts_content_arrs, $_) if $tmp_md5 ne $content;
     }
     close $in or die "$in: $!";
   }
@@ -847,7 +849,7 @@ __DATA__
   </p>
   % foreach (@$txt_content_array) {
     <p>
-    <a href="/delete_txt_line/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('txt') %>/<%= encode_base64("$_") %>">
+    <a href="/delete_txt_line/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('txt') %>/<%= `echo '$_' | md5sum | cut -d ' ' -f1` %>">
     <%= decode_utf8($_) %> <span style="color: red;">click will delete</span></a>
     </p>
   % }
@@ -1192,6 +1194,7 @@ __DATA__
 2022-10-11 gengxinle datestatistic de xianshi wenti
 2022-10-11 gengxinle datestatistic moreng date shuju
 2022-10-17 zengjia le xing zeng yonghu de dongneng
+2022-10-19 jiang base64 encode change to md5 encode
 # coding
 # design
 # dev
