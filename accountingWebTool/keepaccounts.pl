@@ -63,6 +63,15 @@ sub get_ic_txt_content {
   # return $content;
 };
 
+sub get_ic_txt_content_to_arrs {
+  my $user = shift;
+  my $path = get_user_ic_data_path($user);
+  return [] unless -e $path;
+  my $content = `cat $path`;
+  my @arrs = split /\n/, $content;
+  return \@arrs;
+};
+
 sub get_ic_txt_content_origin {
   my $user = shift;
   my $path = get_user_ic_data_path($user);
@@ -142,10 +151,10 @@ sub get_day_oc_txt_content_by_year_month_day {
 };
 
 # return month oc content
-sub get_month_oc_content {
+sub get_month_oc_content_to_arrs {
   my $user = shift;
   my ($year, $month, $day) = get_year_month_day();
-  my $all_content = '';
+  my @all_content = ();
   for($day; $day > 0; $day--){
     $day = "0$day" if $day*$day < 100;
     my $tmp_day_path = get_user_data_path($user) . "/oc$day.txt";
@@ -156,13 +165,19 @@ sub get_month_oc_content {
       while($content_ =~ m/:(.*?) \[.*\]\n/g){
         $total_ += $1;
       }
-      $content_ =~ s/\n/<br>/g;
-      $all_content .= "<br>day-$day ($total_\$):<br>" . $content_;
+      # $content_ =~ s/\n/<br>/g;
+      push(@all_content, "<b>day-$day ($total_\$):</b>");
+      my @arrs = split /\n/, $content_;
+      foreach(@arrs) {
+        push(@all_content, "$_");
+      }
+      # $all_content .= "<br>day-$day ($total_\$):<br>" . $content_;
     } else {
-      $all_content .= "<br>day-$day : null record. <br>";
+      # $all_content .= "<br>day-$day : null record. <br>";
+      push(@all_content, "<b>day-$day : null record. </b>");
     }
   }
-  return decode_utf8($all_content);
+  return \@all_content;
 };
 
 # return user today oc all
@@ -492,8 +507,8 @@ get '/:user' => sub ($c) {
   my $user_today_oc_all = get_today_oc_all($user);
   my $user_month_oc_all = get_month_oc_all($user);
   my $user_month_ic_all = get_ic_all($user);
-  my $user_month_oc_content = get_month_oc_content($user);
-  my $user_month_ic_content = get_ic_txt_content($user);
+  my $user_month_oc_content = decode_utf8( join('<hr>', @{get_month_oc_content_to_arrs($user)}) );
+  my $user_month_ic_content = decode_utf8( join('<hr>', @{get_ic_txt_content_to_arrs($user)}) );
   my $user_month_remain_ic = $user_month_ic_all - $user_month_oc_all;
 
   $c->stash(
@@ -1132,30 +1147,29 @@ __DATA__
 
 <div style="position: relative; margin: 5px; padding: 5px; border: 1px solid #333;">
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">today record:</span><br>
-  <%== $c->stash('user_today_oc_content') %>
-
-  today oc: <%== $c->stash('user_today_oc_all') %>
   </p>
+  <%== $c->stash('user_today_oc_content') %>
+  today oc: <%== $c->stash('user_today_oc_all') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">month all oc:</span><br>
-  <%== $c->stash('user_month_oc_all') %>
   </p>
+  <%== $c->stash('user_month_oc_all') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">all ic:</span><br>
-  <%== $c->stash('user_month_ic_all') %>
   </p>
+  <%== $c->stash('user_month_remain_ic') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">remain ic:</span><br>
-  <%== $c->stash('user_month_remain_ic') %>
   </p>
+  <%== $c->stash('user_month_remain_ic') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic detail:</span><br>
-  <%== $c->stash('user_month_ic_content') %>
   </p>
+  <%== $c->stash('user_month_ic_content') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">month detail:</span><br>
-  <%== $c->stash('user_month_oc_content') %>
   </p>
+  <%== $c->stash('user_month_oc_content') %>
 </div>
 
 
@@ -1178,6 +1192,10 @@ __DATA__
           color:  blue;
           text-decoration: none;
       }
+      p {
+        margin: 0px;
+        margin-bottom: 3px;
+      }
     </style>
 </head>
 
@@ -1195,6 +1213,7 @@ __DATA__
 2022-10-11 gengxinle datestatistic moreng date shuju
 2022-10-17 zengjia le xing zeng yonghu de dongneng
 2022-10-19 jiang base64 encode change to md5 encode
+2022-10-24 method and style
 # coding
 # design
 # dev
