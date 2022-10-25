@@ -11,6 +11,11 @@ get '/' => sub ($c) {
   $c->render(template => 'index');
 };
 
+sub add_str_start_end_span_tag {
+  my $s = shift;
+  return '<span>' . $s . '</span>';
+};
+
 use POSIX qw(strftime);
 # return year, month and day str
 sub get_year_month_day () {
@@ -127,13 +132,13 @@ sub get_ic_all_by_year_month {
 };
 
 # return user today oc txt content
-sub get_today_oc_txt_content {
+sub get_today_oc_txt_content_to_arrs {
   my $user = shift;
   my $path = get_user_today_oc_data_path($user);
-  return '' unless -e $path;
+  return [] unless -e $path;
   my $content = `cat $path`;
-  $content =~ s/\n/<br>/g;
-  return decode_utf8($content);
+  my @arrs = split /\n/, $content;
+  return \@arrs;
 };
 
 # return oc content by year month day
@@ -358,7 +363,7 @@ sub get_user_all_txts_path {
         $txts->{$user}->{$y}->{$m} = [];
         foreach my $txt (split m/\n/,`ls $root_path/$user/$y/$m`){
           # my $tmp_txt_path = "$root_path/$user/$y/$m/$txt";
-          push(@{$txts->{$user}->{$y}->{$m}}, $txt)
+          push(@{$txts->{$user}->{$y}->{$m}}, $txt) unless -d "$root_path/$user/$y/$m/$txt";
         }
       }
     }
@@ -495,6 +500,38 @@ post '/set_oc' => sub ($c) {
   $c->redirect_to($user);
 };
 
+post '/upload_file' => sub ($c) {
+  my $year = $c->param('year');
+  my $month = $c->param('month');
+  my $day = $c->param('day');
+  my $user = $c->param('user');
+  my $record_str = $c->param('record_str');
+
+  # check dir
+  `mkdir -p $root_path/$user/$year/$month/oc$day\_EPC` unless -d "$root_path/$user/$year/$month/oc$day\_EPC";
+  foreach my $file (@{$c->req->uploads}) {
+		my $filename = $file->{'filename'};
+		my $name = $file->{'name'};
+    if ($filename ne '') {
+      $filename =~ s/[\-\#\;\$\!\@\&\(\)\\\<\>\ \:\[\]]/_/g;
+      $record_str =~ s/[\-\#\;\$\!\@\&\(\)\\\<\>\ \:\[\]]/_/g;
+      my $file_type = $1 if $filename =~ m/\.(.*?)$/;
+      my $uuid_8 = $1 if `uuidgen` =~ m/(.*?)-/;
+      my $files_number = `ls -l $root_path/$user/$year/$month/oc$day\_EPC | grep "^-" | wc -l`;
+      chomp($files_number);
+      # say $files_number;
+      my $fn1 = "$files_number\_$uuid_8\_$filename";
+      my $fn2 = "$files_number\_$record_str\.$file_type";
+      # save file
+      $file->move_to("$root_path/$user/$year/$month/oc$day\_EPC/$fn1");
+      `cp $root_path/$user/$year/$month/oc$day\_EPC/$fn1 $root_path/$user/$year/$month/oc$day\_EPC/$fn2`;
+      # $file->move_to("$root_path/$user/$year/$month/oc$day\_EPC/$record_str\.$file_type") unless -e "$root_path/$user/$year/$month/oc$day\_EPC/$record_str\.$file_type";
+    }
+	}
+
+  $c->redirect_to($user);
+};
+
 get '/:user' => sub ($c) {
   my $user = $c->stash('user');
   unless(check_user_route_legal($user)){
@@ -503,12 +540,13 @@ get '/:user' => sub ($c) {
   }
   my ($year, $month, $day) = get_year_month_day();
 
-  my $user_today_oc_content = get_today_oc_txt_content($user);
+  my $user_today_oc_content = decode_utf8( join( '<hr>', map( add_str_start_end_span_tag($_), @{get_today_oc_txt_content_to_arrs($user)} ) ) );
+  my $user_today_oc_content_arrs_ref = get_today_oc_txt_content_to_arrs($user);
   my $user_today_oc_all = get_today_oc_all($user);
   my $user_month_oc_all = get_month_oc_all($user);
   my $user_month_ic_all = get_ic_all($user);
-  my $user_month_oc_content = decode_utf8( join('<hr>', @{get_month_oc_content_to_arrs($user)}) );
-  my $user_month_ic_content = decode_utf8( join('<hr>', @{get_ic_txt_content_to_arrs($user)}) );
+  my $user_month_oc_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_month_oc_content_to_arrs($user)} ) ) );
+  my $user_month_ic_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_ic_txt_content_to_arrs($user)} ) ) );
   my $user_month_remain_ic = $user_month_ic_all - $user_month_oc_all;
 
   $c->stash(
@@ -516,6 +554,7 @@ get '/:user' => sub ($c) {
     month => $month,
     day => $day,
     user_today_oc_content => $user_today_oc_content,
+    user_today_oc_content_arrs_ref => $user_today_oc_content_arrs_ref,
     user_today_oc_all => $user_today_oc_all,
     user_month_oc_all => $user_month_oc_all,
     user_month_ic_all => $user_month_ic_all,
@@ -866,6 +905,7 @@ __DATA__
     <p>
     <a href="/delete_txt_line/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('txt') %>/<%= `echo '$_' | md5sum | cut -d ' ' -f1` %>">
     <%= decode_utf8($_) %> <span style="color: red;">click will delete</span></a>
+    <hr>
     </p>
   % }
 </div>
@@ -1072,9 +1112,15 @@ __DATA__
 @@ user.html.ep
 % layout 'default';
 % title 'accounts record';
+% use Encode qw(decode_utf8);
 
 <!-- coding and design and dev by ywang, 862024320@qq.com, 2022-10-14 -->
-
+<!--div>
+    <form action="/testupload" enctype="multipart/form-data" method="post">
+    <input type="file" id="files" name="files">
+        <input type="submit" value="up">
+    </form>
+</div-->
 <p style="text-align: center; font-size: 1.5em;">
   <%= $c->stash('user') %>&nbsp;&nbsp;
   <%== $c->stash('year') %>-
@@ -1148,7 +1194,38 @@ __DATA__
 <div style="position: relative; margin: 5px; padding: 5px; border: 1px solid #333;">
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">today record:</span><br>
   </p>
-  <%== $c->stash('user_today_oc_content') %>
+  <!--%== $c->stash('user_today_oc_content') %-->
+  % foreach(@{$c->stash('user_today_oc_content_arrs_ref')}) {
+    <span><%== decode_utf8($_) %></span>
+    <div>
+      <form action="/upload_file" enctype="multipart/form-data" method="post">
+        <div style="display: none">
+          <input type="text" name="user" value="<%= $c->stash('user') %>">
+        </div>
+        <div style="display: none">
+          <input type="text" name="year" value="<%= $c->stash('year') %>">
+        </div>
+        <div style="display: none">
+          <input type="text" name="month" value="<%= $c->stash('month') %>">
+        </div>
+        <div style="display: none">
+          <input type="text" name="day" value="<%= $c->stash('day') %>">
+        </div>
+        <div style="display: none">
+          <input type="text" name="record_str" value="<%= decode_utf8($_) %>">
+        </div>
+        <div>
+          <label for="ocname">EPC: </label>
+          <input type="file" id="files" name="files">
+        </div>
+        <div>
+          <input type="submit" value="up!">
+        </div>
+      </form>
+    </div>
+    <hr>
+  % }
+  <br>
   today oc: <%== $c->stash('user_today_oc_all') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">month all oc:</span><br>
@@ -1214,6 +1291,7 @@ __DATA__
 2022-10-17 zengjia le xing zeng yonghu de dongneng
 2022-10-19 jiang base64 encode change to md5 encode
 2022-10-24 method and style
+2022-10-25 zengjia wenjian shagnchuan EPC(Electronic Payment Voucher)
 # coding
 # design
 # dev
