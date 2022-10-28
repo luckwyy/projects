@@ -5,12 +5,34 @@ use Encode qw(decode_utf8);
 use Time::Piece;
 use Time::Seconds;
 
+# set request max limit size
+BEGIN {
+    $ENV{MOJO_MAX_MESSAGE_SIZE} = 2 * 1024 * 1024 * 1024; # 2 GB
+};
+
 my $root_path = './kadata';
 # morbo keepaccounts.pl -l http://127.0.0.1:3001
 get '/' => sub ($c) {
   $c->render(template => 'index');
 };
 
+# generate a uuid with eight numbers like '9bcn20kq'
+sub get_uuid_8 {
+  my $uuid_8 = $1 if `uuidgen` =~ m/(.*?)-/;
+  return $uuid_8;
+};
+
+# decode txt line format and return a hash
+sub decode_txt_line {
+  my $s = shift;
+  my $a = $1 if $s =~ m/\[content:(.*?)\]/;
+  my $b = $1 if $s =~ m/\[time:(.*?)\]/;
+  my $c = $1 if $s =~ m/\[uuid8:(.*?)\]/;
+
+  return {'content' => $a, 'time' => $b, 'uuid8' => $c};
+}
+
+# add span tag to a string
 sub add_str_start_end_span_tag {
   my $s = shift;
   return '<span>' . $s . '</span>';
@@ -30,7 +52,13 @@ sub get_year_month_day () {
 
 # return date time, format: [2022-10-10 10:08:50]
 sub get_date_time () {
-  my $dt = strftime "[%Y-%m-%d %H:%M:%S]", localtime;
+  my $dt = strftime "[time:%Y-%m-%d %H:%M:%S]", localtime;
+  return $dt;
+};
+
+# return date time, format: 2022-10-10-10-08-50]
+sub get_date_time_all_number () {
+  my $dt = strftime "%Y-%m-%d-%H-%M-%S", localtime;
   return $dt;
 };
 
@@ -63,8 +91,12 @@ sub get_ic_txt_content {
   my $path = get_user_ic_data_path($user);
   return '' unless -e $path;
   my $content = `cat $path`;
-  $content =~ s/\n/<br>/g;
-  return decode_utf8($content);
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    push(@arrs, $line_h->{'content'} . ' ' . $line_h->{'time'});
+  }
+  return join('<br>', @arrs);
   # return $content;
 };
 
@@ -73,7 +105,11 @@ sub get_ic_txt_content_to_arrs {
   my $path = get_user_ic_data_path($user);
   return [] unless -e $path;
   my $content = `cat $path`;
-  my @arrs = split /\n/, $content;
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    push(@arrs, $line_h->{'content'} . ' ' . $line_h->{'time'});
+  }
   return \@arrs;
 };
 
@@ -96,7 +132,7 @@ sub get_ic_all {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/:(.*?) /gm){
+  while($content =~ m/\[content:.*?:(.*?)\] /gm){
     $total += $1;
   }
   return $total;
@@ -111,8 +147,12 @@ sub get_ic_txt_content_by_year_month {
   my $path = "$root_path/$user/$year/$month/ic.txt";
   return '' unless -e $path;
   my $content = `cat $path`;
-  $content =~ s/\n/<br>/g;
-  return decode_utf8($content);
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    push(@arrs, decode_utf8 ($line_h->{'content'} ) . ' ' . $line_h->{'time'});
+  }
+  return join('<br>', @arrs);
 };
 
 # get ic all by year month
@@ -125,7 +165,7 @@ sub get_ic_all_by_year_month {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/:(.*?) /gm){
+  while($content =~ m/\[content:.*?:(.*?)\] /gm){
     $total += $1;
   }
   return $total;
@@ -137,7 +177,12 @@ sub get_today_oc_txt_content_to_arrs {
   my $path = get_user_today_oc_data_path($user);
   return [] unless -e $path;
   my $content = `cat $path`;
-  my @arrs = split /\n/, $content;
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    push(@arrs, $line_h);
+  }
+
   return \@arrs;
 };
 
@@ -151,8 +196,12 @@ sub get_day_oc_txt_content_by_year_month_day {
   my $path = "$root_path/$user/$year/$month/oc$day.txt";
   return '' unless -e $path;
   my $content = `cat $path`;
-  $content =~ s/\n/<br>/g;
-  return decode_utf8($content);
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    push(@arrs, decode_utf8( $line_h->{'content'} ) . ' ' . $line_h->{'time'});
+  }
+  return join('<br>', @arrs);
 };
 
 # return month oc content
@@ -167,14 +216,14 @@ sub get_month_oc_content_to_arrs {
     if (-e $tmp_day_path) {
       my $content_ = `cat $tmp_day_path`;
       my $total_ = 0;
-      while($content_ =~ m/:(.*?) \[.*\]\n/g){
+      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
         $total_ += $1;
       }
       # $content_ =~ s/\n/<br>/g;
       push(@all_content, "<b>day-$day ($total_\$):</b>");
       my @arrs = split /\n/, $content_;
       foreach(@arrs) {
-        push(@all_content, "$_");
+        push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'});
       }
       # $all_content .= "<br>day-$day ($total_\$):<br>" . $content_;
     } else {
@@ -192,7 +241,7 @@ sub get_today_oc_all {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/:(.*?) \[.*\]\n/g){
+  while($content =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
     $total += $1;
   }
   return $total;
@@ -209,7 +258,7 @@ sub get_day_oc_all_by_year_month_day {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/:(.*?) \[.*\]\n/g){
+  while($content =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
     $total += $1;
   }
   return $total;
@@ -227,7 +276,7 @@ sub get_month_oc_all {
     if (-e $tmp_day_path) {
       my $content_ = `cat $tmp_day_path`;
       my $total_ = 0;
-      while($content_ =~ m/:(.*?) \[.*\]\n/g){
+      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
         $total_ += $1;
       }
       $total += $total_;
@@ -252,7 +301,7 @@ sub get_month_oc_all_by_year_month {
     if (-e $tmp_day_path) {
       my $content_ = `cat $tmp_day_path`;
       my $total_ = 0;
-      while($content_ =~ m/:(.*?) \[.*\]\n/g){
+      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
         $total_ += $1;
       }
       $total += $total_;
@@ -293,7 +342,7 @@ sub get_months_ic_all_by_date_start_end {
           my $path = "$root_path/$user/$y/$m/ic.txt";
           my $content = `cat $path`;
           my $total = 0;
-          while($content =~ m/:(.*?) /gm){
+          while($content =~ m/\[content:.*?:(.*?)\] /gm){
             $total += $1;
           }
           $total_ic += $total;
@@ -330,7 +379,7 @@ sub get_days_oc_all_by_date_start_end {
       if (-e $tmp_day_path) {
         my $content_ = `cat $tmp_day_path`;
         my $total_ = 0;
-        while($content_ =~ m/:(.*?) \[.*\]\n/g){
+        while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
           $total_ += $1;
         }
         $total_oc += $total_;
@@ -380,7 +429,7 @@ sub set_ic_txt_line_data {
   my $path = get_user_ic_data_path($user);
   `touch $path` unless -e $path;
   open(my $out, ">>", "$path");
-  say $out "$ic_name:$ic_number " . get_date_time();
+  say $out "[content:$ic_name:$ic_number] " . get_date_time() . ' [uuid8:' . get_uuid_8() . ']';
   close $out;
 };
 
@@ -392,7 +441,7 @@ sub set_oc_txt_line_data {
   my $path = get_user_today_oc_data_path($user);
   `touch $path` unless -e $path;
   open(my $out, ">>", "$path");
-  say $out "$oc_name:$oc_number " . get_date_time();
+  say $out "[content:$oc_name:$oc_number] " . get_date_time() . ' [uuid8:' . get_uuid_8() . ']';
   close $out;
 };
 
@@ -414,6 +463,26 @@ sub get_txt_content_to_array {
   }
 
   return \@txts_content_arrs;
+};
+
+sub get_txt_uuid_to_array {
+  my $user = shift;
+  my $y = shift;
+  my $m = shift;
+  my $txt = shift;
+  
+  my @txts_uuid_arrs = ();
+  if (-e "$root_path/$user/$y/$m/$txt") {
+    open(my $in,  "<",  "$root_path/$user/$y/$m/$txt")  or die "Can't open input.txt: $!";
+    while (<$in>) {     # assigns each line in turn to $_
+      chomp;
+      my $uuid =  $1 if $_ =~ m/\[uuid:(.*?)\]/;
+      push(@txts_uuid_arrs, $uuid);
+    }
+    close $in or die "$in: $!";
+  }
+
+  return \@txts_uuid_arrs;
 };
 
 # check number
@@ -443,10 +512,10 @@ sub check_name {
 # replace_name, check and replace special char
 sub replace_name {
   my $n = shift;
-  $n =~ s/ /SPACE/g;
-  $n =~ s/\:/COLON/g;
+  $n =~ s/ /SPA/g;
+  $n =~ s/\:/COL/g;
   $n =~ s/\./DOT/g;
-  $n =~ s/[ \:\.\,\-\_\[\]\+\=\#\*\$\%\^\\\/\!\`\'\"\;\?\>\<\|]/SPCHAR/g;
+  $n =~ s/[ \:\.\,\-\_\[\]\+\=\#\*\$\%\^\\\/\!\`\'\"\;\?\>\<\|]/CHR/g;
   return $n;
 };
 
@@ -505,7 +574,9 @@ post '/upload_file' => sub ($c) {
   my $month = $c->param('month');
   my $day = $c->param('day');
   my $user = $c->param('user');
-  my $record_str = $c->param('record_str');
+  my $uuid8 = $c->param('uuid8');
+  my $content_as_file_name = $1 if $c->param('content_as_file_name') =~ m/(.*?):/;
+  # my $record_str_origin = $c->param('record_str');
 
   # check dir
   `mkdir -p $root_path/$user/$year/$month/oc$day\_EPC` unless -d "$root_path/$user/$year/$month/oc$day\_EPC";
@@ -513,18 +584,18 @@ post '/upload_file' => sub ($c) {
 		my $filename = $file->{'filename'};
 		my $name = $file->{'name'};
     if ($filename ne '') {
-      $filename =~ s/[\-\#\;\$\!\@\&\(\)\\\<\>\ \:\[\]]/_/g;
-      $record_str =~ s/[\-\#\;\$\!\@\&\(\)\\\<\>\ \:\[\]]/_/g;
+      my $current_time = get_date_time_all_number();
       my $file_type = $1 if $filename =~ m/\.(.*?)$/;
-      my $uuid_8 = $1 if `uuidgen` =~ m/(.*?)-/;
       my $files_number = `ls -l $root_path/$user/$year/$month/oc$day\_EPC | grep "^-" | wc -l`;
       chomp($files_number);
       # say $files_number;
-      my $fn1 = "$files_number\_$uuid_8\_$filename";
-      my $fn2 = "$files_number\_$record_str\.$file_type";
+      my $fn1 = "$files_number\_$current_time\_$filename";
+      my $fn2 = "$files_number\_$uuid8\.$file_type";
+      my $fn3 = "$files_number\_$content_as_file_name\.$file_type";
       # save file
       $file->move_to("$root_path/$user/$year/$month/oc$day\_EPC/$fn1");
       `cp $root_path/$user/$year/$month/oc$day\_EPC/$fn1 $root_path/$user/$year/$month/oc$day\_EPC/$fn2`;
+      `cp $root_path/$user/$year/$month/oc$day\_EPC/$fn1 $root_path/$user/$year/$month/oc$day\_EPC/$fn3`;
       # $file->move_to("$root_path/$user/$year/$month/oc$day\_EPC/$record_str\.$file_type") unless -e "$root_path/$user/$year/$month/oc$day\_EPC/$record_str\.$file_type";
     }
 	}
@@ -644,7 +715,7 @@ post '/get_date_statistic' => sub ($c) {
     if (-d "$root_path/$user/$y/$m") {
       unless (get_day_oc_txt_content_by_year_month_day($user, $y, $m, $d) eq '') {
         $msg = "$tmp_date: <br>" . get_day_oc_txt_content_by_year_month_day($user, $y, $m, $d) . 
-        "- day total oc: " . get_day_oc_all_by_year_month_day($user, $y, $m, $d) . "<br><br>" . $msg;
+        "<br>- day total oc: " . get_day_oc_all_by_year_month_day($user, $y, $m, $d) . "<br><br>" . $msg;
       }
       if ($d == 1 or $start_t eq $end_t) {
         $date_point_flag = 1;
@@ -749,9 +820,10 @@ get '/delete_txt_line/:user/:y/:m/#txt/:content' => sub ($c) {
     open(my $in,  "<",  "$root_path/$user/$y/$m/$txt")  or die "Can't open input.txt: $!";
     while (<$in>) {     # assigns each line in turn to $_
       chomp;
-      my $tmp_md5 = `echo '$_' | md5sum | cut -d ' ' -f1`;
-      chomp($tmp_md5); # remove '\n', it is important
-      push(@txts_content_arrs, $_) if $tmp_md5 ne $content;
+      # my $tmp_md5 = `echo '$_' | md5sum | cut -d ' ' -f1`;
+      # chomp($tmp_md5); # remove '\n', it is important
+      my $tmp_uuid8 = $1 if $_ =~ m/\[uuid8:(.*?)\]/;
+      push(@txts_content_arrs, $_) if $tmp_uuid8 ne $content;
     }
     close $in or die "$in: $!";
   }
@@ -903,8 +975,9 @@ __DATA__
   </p>
   % foreach (@$txt_content_array) {
     <p>
-    <a href="/delete_txt_line/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('txt') %>/<%= `echo '$_' | md5sum | cut -d ' ' -f1` %>">
-    <%= decode_utf8($_) %> <span style="color: red;">click will delete</span></a>
+    <!-- %= `echo '$_' | md5sum | cut -d ' ' -f1` % -->
+    <a href="/delete_txt_line/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('txt') %>/<%= $1 if $_ =~ m/\[uuid8:(.*?)\]/ %>">
+    <%= decode_utf8( $_ ) %> <span style="color: red;">click will delete</span></a>
     <hr>
     </p>
   % }
@@ -1121,7 +1194,18 @@ __DATA__
         <input type="submit" value="up">
     </form>
 </div-->
+
+<p style="text-align: center; font-size: 1.5em; color: red;">
+  <h4 id="tmp_alert" style="text-align: center; font-weight: bold; color: red;"></h4>
+</p>
+
+% my $user = $c->stash('user');
+% my $year = $c->stash('year');
+% my $month = $c->stash('month');
+% my $day = $c->stash('day');
+
 <p style="text-align: center; font-size: 1.5em;">
+  <span style="font-weight: bold;"></span>
   <%= $c->stash('user') %>&nbsp;&nbsp;
   <%== $c->stash('year') %>-
   <%== $c->stash('month') %>-
@@ -1196,9 +1280,13 @@ __DATA__
   </p>
   <!--%== $c->stash('user_today_oc_content') %-->
   % foreach(@{$c->stash('user_today_oc_content_arrs_ref')}) {
-    <span><%== decode_utf8($_) %></span>
+    % my $uuid_8 = $_->{'uuid8'};
+    <span id="<%= $uuid_8 %>"><%== decode_utf8( $_->{'content'} ) . ' ' . $_->{'time'} %></span>
+    % my $upload_files_number = `ls ./kadata/$user/$year/$month/oc$day\_EPC | grep '$uuid_8' | wc -l`;
+    % chomp($upload_files_number);
+    <span style="color: pink;"><%= $upload_files_number == 0 ? $upload_files_number : $upload_files_number %></span>
     <div>
-      <form action="/upload_file" enctype="multipart/form-data" method="post">
+      <form name="<%= $uuid_8 %>" action="/upload_file" enctype="multipart/form-data" method="post" onsubmit="setDisabled('<%= $uuid_8 %>')">
         <div style="display: none">
           <input type="text" name="user" value="<%= $c->stash('user') %>">
         </div>
@@ -1212,19 +1300,37 @@ __DATA__
           <input type="text" name="day" value="<%= $c->stash('day') %>">
         </div>
         <div style="display: none">
-          <input type="text" name="record_str" value="<%= decode_utf8($_) %>">
+          <input type="text" name="uuid8" value="<%= $uuid_8 %>">
+        </div>
+        <div style="display: none">
+          <input type="text" name="content_as_file_name" value="<%= decode_utf8( $_->{'content'} ) %>">
         </div>
         <div>
           <label for="ocname">EPC: </label>
           <input type="file" id="files" name="files">
         </div>
         <div>
-          <input type="submit" value="up!">
+          <input id="<%= $uuid_8 %>" type="submit" value="up!">
         </div>
       </form>
     </div>
     <hr>
   % }
+  <script type="text/javascript">
+    function setDisabled(name) {
+      for (let element of document.getElementsByTagName('input')) {
+        element.style.display = 'none';
+      }
+      for (let element of document.getElementsByTagName('a')) {
+        element.style.pointerEvents = 'none';
+        element.style.color = 'gray';
+        //element.disabled = true;
+      }
+      document.getElementById('tmp_alert').innerText = 'wait...files uploading.';
+      document.getElementById(name).innerText = document.getElementById(name).innerText + '<uploading...>';
+      document.getElementById(name).style.color = 'red';
+    }
+  </script>
   <br>
   today oc: <%== $c->stash('user_today_oc_all') %>
 
@@ -1234,7 +1340,7 @@ __DATA__
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">all ic:</span><br>
   </p>
-  <%== $c->stash('user_month_remain_ic') %>
+  <%== $c->stash('user_month_ic_all') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">remain ic:</span><br>
   </p>
