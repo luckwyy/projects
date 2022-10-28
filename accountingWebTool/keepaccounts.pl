@@ -204,6 +204,26 @@ sub get_day_oc_txt_content_by_year_month_day {
   return join('<br>', @arrs);
 };
 
+sub get_day_oc_txt_content_by_year_month_day_with_uuid8 {
+  my $user = shift;
+  my $year = shift;
+  my $month = shift;
+  my $day = shift;
+  my $uuid8 = shift;
+
+  my $path = "$root_path/$user/$year/$month/oc$day.txt";
+  return '' unless -e $path;
+  my $content = `cat $path`;
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    if ($line_h->{'uuid8'} eq $uuid8){
+      push(@arrs, decode_utf8( $line_h->{'content'} ) . ' ' . $line_h->{'time'});
+    }
+  }
+  return join('<br>', @arrs);
+};
+
 # return month oc content
 sub get_month_oc_content_to_arrs {
   my $user = shift;
@@ -880,6 +900,46 @@ post '/set_new_user' => sub ($c) {
   $c->render(template => 'adduser');
 };
 
+# show all files about current record
+get '/show_record_files/:user/:y/:m/:d/:dir/:uuid8' => sub ($c) {
+  my $user = $c->stash('user');
+  my $y = $c->stash('y');
+  my $m = $c->stash('m');
+  my $d = $c->stash('d');
+  my $dir = $c->stash('dir');
+  my $uuid8 = $c->stash('uuid8');
+
+  my $path = "$root_path/$user/$y/$m/$dir";
+  unless (-d $path) {
+    $c->redirect_to("/$user");
+    return;
+  }
+  
+  my $files = `ls $path | grep '$uuid8'`;
+  if ($files eq '') {
+    $c->redirect_to("/$user");
+    return;
+  }
+  
+  my @files_arrs = split('\n', $files);
+  $c->stash(files_arrs_ref => \@files_arrs);
+  my $oc_contents = 
+  $c->stash(oc_contents => get_day_oc_txt_content_by_year_month_day_with_uuid8($user, $y, $m, $d, $uuid8));
+  
+  $c->render(template => 'files_display');
+};
+
+# return a file static resource
+get '/get_files_img/:user/:y/:m/:dir/#file' => sub ($c) {
+  my $user = $c->stash('user');
+  my $y = $c->stash('y');
+  my $m = $c->stash('m');
+  my $dir = $c->stash('dir');
+  my $file = $c->stash('file');
+  $c->reply->file("$root_path/$user/$y/$m/$dir/$file");
+};
+
+
 app->start;
 __DATA__
 
@@ -887,6 +947,40 @@ __DATA__
 % layout 'default';
 % title 'Welcome';
 <h1>Connact Admin and add your account.</h1>
+
+@@ files_display.html.ep
+% layout 'default';
+% title 'record relative files';
+<p style="text-align: center;">danger oper, please input pwd legally</p>
+<p style="text-align: center;">
+  <a onclick="history.back()" style="color: blue;">go back</a>
+   | 
+  <a href="/<%= $c->stash('user') %>">back home</a>
+</p>
+
+% my $files_arrs_ref = $c->stash('files_arrs_ref');
+
+<div style="font-size: 1.0em; border: 1px solid #333; padding: 5px;">
+  <p style="text-align: center;">
+    <%= $c->stash('user') %>, <%= $c->stash('y') %>, <%= $c->stash('m') %>, <%= $c->stash('dir') %>, <%= $c->stash('uuid8') %>
+  </p>
+  <p style="text-align: center;">
+    <%== $c->stash('oc_contents') %>
+  </p>
+  <hr>
+  % foreach (@$files_arrs_ref) {
+    <p style="text-align: center;">
+    <b onclick="showImg('/get_files_img/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('dir') %>/<%= $_ %>')"><%= $_ %></b>
+    <hr>
+    </p>
+  % }
+  <img id="img" src="" width="100%">
+  <script type="text/javascript">
+    function showImg(path){
+      document.getElementById('img').src = path;
+    }
+  </script>
+</div>
 
 @@ adduser.html.ep
 % layout 'default';
@@ -1309,8 +1403,11 @@ __DATA__
           <label for="ocname">EPC: </label>
           <input type="file" id="files" name="files">
         </div>
-        <div>
+        <div style="float: right;">
           <input id="<%= $uuid_8 %>" type="submit" value="up!">
+          % if ($upload_files_number != 0) {
+            <a href="/show_record_files/<%= $user %>/<%= $year %>/<%= $month %>/<%= $c->stash('day') %>/oc<%= $day %>_EPC/<%= $uuid_8 %>">Preview</a>
+          % }
         </div>
       </form>
     </div>
