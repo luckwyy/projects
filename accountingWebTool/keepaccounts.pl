@@ -254,6 +254,52 @@ sub get_month_oc_content_to_arrs {
   return \@all_content;
 };
 
+# return month oc content with files preview alink
+sub get_month_oc_content_to_arrs_with_preview_alink {
+  my $user = shift;
+  my ($year, $month, $day) = get_year_month_day();
+  my @all_content = ();
+  for($day; $day > 0; $day--){
+    $day = "0$day" if $day*$day < 100;
+    my $tmp_day_path = get_user_data_path($user) . "/oc$day.txt";
+    # $tmp_day_path = get_user_data_path($user) . "/oc0$day.txt" if $day*$day < 100;
+    if (-e $tmp_day_path) {
+      my $content_ = `cat $tmp_day_path`;
+      my $total_ = 0;
+      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+        $total_ += $1;
+      }
+
+      my $alink = '';
+      # $content_ =~ s/\n/<br>/g;
+      push(@all_content, "<b>day-$day ($total_\$):</b>");
+      my @arrs = split /\n/, $content_;
+      foreach(@arrs) {
+        my $EPC_dir = "$root_path/$user/$year/$month/oc$day\_EPC";
+        if(-d $EPC_dir) {
+          my $tmp_uuid8 = decode_txt_line($_)->{'uuid8'};
+          my $files_number = 0;
+          $files_number = `ls ./kadata/$user/$year/$month/oc$day\_EPC | grep '$tmp_uuid8' | wc -l`;
+          chomp($files_number);
+          if ($files_number != 0){
+            push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
+            "<a href='/show_record_files/$user/$year/$month/$day/oc$day\_EPC/$tmp_uuid8'>Preview</a>");
+          }else{
+            push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'});
+          }
+        } else {
+          push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'});
+        }
+      }
+      # $all_content .= "<br>day-$day ($total_\$):<br>" . $content_;
+    } else {
+      # $all_content .= "<br>day-$day : null record. <br>";
+      push(@all_content, "<b>day-$day : null record. </b>");
+    }
+  }
+  return \@all_content;
+};
+
 # return user today oc all
 sub get_today_oc_all {
   my $user = shift;
@@ -636,7 +682,7 @@ get '/:user' => sub ($c) {
   my $user_today_oc_all = get_today_oc_all($user);
   my $user_month_oc_all = get_month_oc_all($user);
   my $user_month_ic_all = get_ic_all($user);
-  my $user_month_oc_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_month_oc_content_to_arrs($user)} ) ) );
+  my $user_month_oc_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_month_oc_content_to_arrs_with_preview_alink($user)} ) ) );
   my $user_month_ic_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_ic_txt_content_to_arrs($user)} ) ) );
   my $user_month_remain_ic = $user_month_ic_all - $user_month_oc_all;
 
@@ -1495,6 +1541,7 @@ __DATA__
 2022-10-19 jiang base64 encode change to md5 encode
 2022-10-24 method and style
 2022-10-25 zengjia wenjian shagnchuan EPC(Electronic Payment Voucher)
+2022-10-31 zengjia lishi oc jilu de preview alink
 # coding
 # design
 # dev
