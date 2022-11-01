@@ -38,6 +38,12 @@ sub add_str_start_end_span_tag {
   return '<span>' . $s . '</span>';
 };
 
+# add b tag to a string
+sub add_str_start_end_b_tag {
+  my $s = shift;
+  return '<b>' . $s . '</b>';
+};
+
 use POSIX qw(strftime);
 # return year, month and day str
 sub get_year_month_day () {
@@ -202,6 +208,37 @@ sub get_day_oc_txt_content_by_year_month_day {
     push(@arrs, decode_utf8( $line_h->{'content'} ) . ' ' . $line_h->{'time'});
   }
   return join('<br>', @arrs);
+};
+
+# return oc content by year month day with preview alink
+sub get_day_oc_txt_content_by_year_month_day_with_preview_alink {
+  my $user = shift;
+  my $year = shift;
+  my $month = shift;
+  my $day = shift;
+
+  my $path = "$root_path/$user/$year/$month/oc$day.txt";
+  return '' unless -e $path;
+  my $content = `cat $path`;
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $EPC_dir = "$root_path/$user/$year/$month/oc$day\_EPC";
+    if(-d $EPC_dir) {
+      my $tmp_uuid8 = decode_txt_line($_)->{'uuid8'};
+      my $files_number = 0;
+      $files_number = `ls ./kadata/$user/$year/$month/oc$day\_EPC | grep '$tmp_uuid8' | wc -l`;
+      chomp($files_number);
+      if ($files_number != 0){
+        push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
+        "<a href='/show_record_files/$user/$year/$month/$day/oc$day\_EPC/$tmp_uuid8'>Preview</a>");
+      }else{
+        push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' ' . decode_txt_line($_)->{'time'});
+      }
+    } else {
+      push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' ' . decode_txt_line($_)->{'time'});
+    }
+  }
+  return join('<hr>', @arrs);
 };
 
 sub get_day_oc_txt_content_by_year_month_day_with_uuid8 {
@@ -752,66 +789,34 @@ post '/get_date_statistic' => sub ($c) {
     $dateend = $datestart;
     $datestart = $tmp;
   }
-  # my ($startyear, $startmonth, $startday) = ($1, $2, $3) if $datestart =~ m/(.*)-(.*)-(.*)/;
-  # my ($endyear, $endmonth, $endday) = ($1, $2, $3) if $dateend =~ m/(.*)-(.*)-(.*)/;
   
-  # varible for calculate date from start to end oc all
-  # point_1 <= point_2;
-  my $date_point_1 = '';
-  my $date_point_2 = '';
-  my $date_point_flag = 0;
+  my $oc_all_by_start_end_day = get_days_oc_all_by_date_start_end($user, $datestart, $dateend);
+  $msg .= add_str_start_end_b_tag( '<br> from ' . $datestart . ' to ' . $dateend . '<br>' );
+  $msg .= '<br> your all oc: ' . $oc_all_by_start_end_day . '<br>';
+  $msg .= add_str_start_end_b_tag( '<br> days detail: <br>' );
 
   my $FORMAT = '%Y-%m-%d';
-  my $start = $datestart;
-  my $end   = $dateend;
-  my $start_t = Time::Piece->strptime( $start, $FORMAT );
-  my $end_t   = Time::Piece->strptime( $end,   $FORMAT );
-  $date_point_2 = $end_t ->strftime($FORMAT);
+  my $start_t = Time::Piece->strptime($datestart, $FORMAT );
+  my $end_t   = Time::Piece->strptime($dateend, $FORMAT );
   while ( $start_t <= $end_t ) {
-    if ($date_point_flag == 1) {
-      $date_point_2 = $end_t ->strftime($FORMAT);
-      # say $date_point_2;
+    my $tmp_date = $end_t->strftime($FORMAT);
+    my ($tmp_year, $tmp_month, $tmp_day) = ($1, $2, $3) if $tmp_date =~ m/(.*)-(.*)-(.*)/;
+    my $month_end_flag = 0;
+    if ($tmp_day == 1 or $start_t == $end_t) {
+        $month_end_flag = 1;
     }
-    $date_point_flag = 0;
-    # say $start_t ->strftime($FORMAT), "\n";
-    my $tmp_date = $end_t ->strftime($FORMAT);
-    # say "$tmp_date";
-    my ($y, $m, $d) = ($1, $2, $3) if $tmp_date =~ m/(.*)-(.*)-(.*)/;
-    # $msg .= "$tmp_date: null record. <br>" unless -d "$root_path/$user/$y/$m";
-    if (-d "$root_path/$user/$y/$m") {
-      unless (get_day_oc_txt_content_by_year_month_day($user, $y, $m, $d) eq '') {
-        $msg = "$tmp_date: <br>" . get_day_oc_txt_content_by_year_month_day($user, $y, $m, $d) . 
-        "<br>- day total oc: " . get_day_oc_all_by_year_month_day($user, $y, $m, $d) . "<br><br>" . $msg;
-      }
-      if ($d == 1 or $start_t eq $end_t) {
-        $date_point_flag = 1;
-        $date_point_1 = $tmp_date;
-        unless (get_ic_txt_content_by_year_month($user, $y, $m) eq '') {
-          $msg = "<br><br> month total ic content: <br>". get_ic_txt_content_by_year_month($user, $y, $m) . "<br>" . $msg;
-          $msg = "<br> month total oc: ". get_month_oc_all_by_year_month($user, $y, $m) . "\$" . $msg;
-          $msg = "<br> ic without oc: ". (get_ic_all_by_year_month($user, $y, $m) - get_month_oc_all_by_year_month($user, $y, $m)) . "\$" . $msg;
-          $msg = "<br> start to month end total oc: ". get_days_oc_all_by_date_start_end($user, $date_point_1, $date_point_2) . "\$" . $msg;
-          $msg = "<br> ic without start-end oc: ". (get_ic_all_by_year_month($user, $y, $m) - get_days_oc_all_by_date_start_end($user, $date_point_1, $date_point_2)) . "\$" . $msg;
-          $msg = "<span style='font-weight: bold;'>$y-$m</span> <br> month total ic : ". get_ic_all_by_year_month($user, $y, $m) . "\$" . $msg;
-          
-        }
-      }
-    } else {
-      $msg .= '';
+    my $day_oc_all = get_day_oc_all_by_year_month_day($user, $tmp_year, $tmp_month, $tmp_day);
+    if ($day_oc_all != 0) {
+      $msg .= add_str_start_end_b_tag( '<br>' . $tmp_date . '( '. $day_oc_all .' $): <br>' );
+      my $day_oc_content_with_preview_alink = get_day_oc_txt_content_by_year_month_day_with_preview_alink($user, $tmp_year, $tmp_month, $tmp_day);
+      $msg .= $day_oc_content_with_preview_alink . '<hr>';
     }
-    # $end_t -= ONE_MONTH;
     $end_t -= ONE_DAY;
   }
-
-  # get ic and oc all from date start to end
-  my $months_ic_all_from_date_start_end = get_months_ic_all_by_date_start_end($user, $datestart, $dateend);
-  my $days_oc_all_from_date_start_end = get_days_oc_all_by_date_start_end($user, $datestart, $dateend);
 
   $c->flash(datestart => $datestart);
   $c->flash(dateend => $dateend);
   $c->flash(msg => $msg);
-  $c->flash(months_ic_all_from_date_start_end => $months_ic_all_from_date_start_end);
-  $c->flash(days_oc_all_from_date_start_end => $days_oc_all_from_date_start_end);
   $c->redirect_to("/$user/$oper");
 };
 
@@ -1116,7 +1121,9 @@ __DATA__
   % foreach (@$txt_content_array) {
     <p>
     <!-- %= `echo '$_' | md5sum | cut -d ' ' -f1` % -->
-    <a href="/delete_txt_line/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('txt') %>/<%= $1 if $_ =~ m/\[uuid8:(.*?)\]/ %>">
+    <a href="/delete_txt_line/<%= $c->stash('user') %>/<%= $c->stash('y') %>/<%= $c->stash('m') %>/<%= $c->stash('txt') %>/<%= $1 if $_ =~ m/\[uuid8:(.*?)\]/ %>"
+    onclick="return(confirm('confirm?'))"
+    >
     <%= decode_utf8( $_ ) %> <span style="color: red;">click will delete</span></a>
     <hr>
     </p>
@@ -1194,15 +1201,6 @@ __DATA__
 </form>
 
 <p>Detail: </p>
-
-% if ($c->flash('months_ic_all_from_date_start_end') != 0) {
-  <div style="border: 1px solid #333; padding: 5px;">
-  <p>from <%= $c->flash('datestart') %> to <%= $c->flash('dateend') %> all ic and oc.</p>
-  <p> sub detail: </p>
-  <p> all ic: <%= $c->flash('months_ic_all_from_date_start_end') %> $</p>
-  <p> all oc: <%= $c->flash('days_oc_all_from_date_start_end') %> $</p>
-  </div>
-% }
 
 % if ($c->flash('msg') ne '') {
   <div style="border: 1px solid #333; padding: 5px;">
