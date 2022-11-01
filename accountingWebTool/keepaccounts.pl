@@ -260,7 +260,7 @@ sub get_month_oc_content_to_arrs_with_preview_alink {
   my ($year, $month, $day) = get_year_month_day();
   my @all_content = ();
   for($day; $day > 0; $day--){
-    $day = "0$day" if $day*$day < 100;
+    # $day = "0$day" if $day*$day < 100;
     my $tmp_day_path = get_user_data_path($user) . "/oc$day.txt";
     # $tmp_day_path = get_user_data_path($user) . "/oc0$day.txt" if $day*$day < 100;
     if (-e $tmp_day_path) {
