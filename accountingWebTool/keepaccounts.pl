@@ -144,6 +144,27 @@ sub get_ic_all {
   return $total;
 };
 
+# get ic by year month arrs ref
+sub get_ic_txt_content_arrs_ref_by_year_month {
+  my $user = shift;
+  my $year = shift;
+  my $month = shift;
+
+  my $path = "$root_path/$user/$year/$month/ic.txt";
+  return '' unless -e $path;
+  my $content = `cat $path`;
+  my @arrs = ();
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    # push(@arrs, decode_utf8 ($line_h->{'content'} ) . ' ' . $line_h->{'time'});
+    push(@arrs, {
+      content => $line_h->{'content'},
+      time => $line_h->{'time'}
+    });
+  }
+  return \@arrs;
+};
+
 # get ic by year month
 sub get_ic_txt_content_by_year_month {
   my $user = shift;
@@ -264,10 +285,12 @@ sub get_day_oc_txt_content_by_year_month_day_with_uuid8 {
 # return month oc content
 sub get_month_oc_content_to_arrs {
   my $user = shift;
+
   my ($year, $month, $day) = get_year_month_day();
   my @all_content = ();
   for($day; $day > 0; $day--){
-    $day = "0$day" if $day*$day < 100;
+    $day = $day*$day/$day if ($day*$day < 100);
+    $day = "0$day" if ($day*$day < 100);
     my $tmp_day_path = get_user_data_path($user) . "/oc$day.txt";
     # $tmp_day_path = get_user_data_path($user) . "/oc0$day.txt" if $day*$day < 100;
     if (-e $tmp_day_path) {
@@ -294,10 +317,12 @@ sub get_month_oc_content_to_arrs {
 # return month oc content with files preview alink
 sub get_month_oc_content_to_arrs_with_preview_alink {
   my $user = shift;
+
   my ($year, $month, $day) = get_year_month_day();
   my @all_content = ();
   for($day; $day > 0; $day--){
-    # $day = "0$day" if $day*$day < 100;
+    $day = $day*$day/$day if ($day*$day < 100);
+    $day = "0$day" if ($day*$day < 100);
     my $tmp_day_path = get_user_data_path($user) . "/oc$day.txt";
     # $tmp_day_path = get_user_data_path($user) . "/oc0$day.txt" if $day*$day < 100;
     if (-e $tmp_day_path) {
@@ -373,7 +398,8 @@ sub get_month_oc_all {
   my ($year, $month, $day) = get_year_month_day();
   my $total = 0;
   for($day; $day > 0; $day--){
-    $day = "0$day" if $day*$day < 100;
+    $day = $day*$day/$day if ($day*$day < 100);
+    $day = "0$day" if ($day*$day < 100);
     my $tmp_day_path = get_user_data_path($user) . "/oc$day.txt";
     # $tmp_day_path = get_user_data_path($user) . "/oc0$day.txt" if $day*$day < 100;
     if (-e $tmp_day_path) {
@@ -395,6 +421,7 @@ sub get_month_oc_all_by_year_month {
   my $user = shift;
   my $year = shift;
   my $month = shift;
+
   my $day = 31; # from 31 to 1 if
   my $total = 0;
   for($day; $day > 0; $day--){
@@ -529,6 +556,7 @@ sub set_ic_txt_line_data {
   my $user = shift;
   my $ic_name = shift;
   my $ic_number = shift;
+
   my $path = get_user_ic_data_path($user);
   `touch $path` unless -e $path;
   open(my $out, ">>", "$path");
@@ -541,6 +569,7 @@ sub set_oc_txt_line_data {
   my $user = shift;
   my $oc_name = shift;
   my $oc_number = shift;
+
   my $path = get_user_today_oc_data_path($user);
   `touch $path` unless -e $path;
   open(my $out, ">>", "$path");
@@ -680,6 +709,10 @@ post '/upload_file' => sub ($c) {
   my $uuid8 = $c->param('uuid8');
   my $content_as_file_name = $1 if $c->param('content_as_file_name') =~ m/(.*?):/;
   # my $record_str_origin = $c->param('record_str');
+  unless(check_user_route_legal($user)){
+    $c->render(template => 'index');
+    return;
+  }
 
   # check dir
   `mkdir -p $root_path/$user/$year/$month/oc$day\_EPC` unless -d "$root_path/$user/$year/$month/oc$day\_EPC";
@@ -792,8 +825,13 @@ post '/get_date_statistic' => sub ($c) {
   
   my $oc_all_by_start_end_day = get_days_oc_all_by_date_start_end($user, $datestart, $dateend);
   $msg .= add_str_start_end_b_tag( '<br> from ' . $datestart . ' to ' . $dateend . '<br>' );
-  $msg .= '<br> your all oc: ' . $oc_all_by_start_end_day . '<br>';
+  $msg .= '<br> all ic: <br>';
+  $msg .= '<br> ic details: <br>';
+  $msg .= '<br> all oc: ' . $oc_all_by_start_end_day . '<br>';
   $msg .= add_str_start_end_b_tag( '<br> days detail: <br>' );
+
+  my $ic_all_between_days = 0;
+  my $ic_details_between_days = '';
 
   my $FORMAT = '%Y-%m-%d';
   my $start_t = Time::Piece->strptime($datestart, $FORMAT );
@@ -804,6 +842,18 @@ post '/get_date_statistic' => sub ($c) {
     my $month_end_flag = 0;
     if ($tmp_day == 1 or $start_t == $end_t) {
         $month_end_flag = 1;
+
+        my $ic_arrs = get_ic_txt_content_arrs_ref_by_year_month($user, $tmp_year, $tmp_month);
+        if ($ic_arrs ne '') {
+          foreach my $ic_line (@$ic_arrs) {
+            my $ic_line_date = $1 if $ic_line->{'time'} =~ m/(.*?) /;
+            my $ic_line_price = $1 if $ic_line->{'content'} =~ m/:(.*?)/;
+
+            if($ic_line_date ge $datestart and $ic_line_date le $dateend) {
+              $ic_details_between_days .= '<br>' . decode_utf8($ic_line->{'content'}) . ' ' . $ic_line->{'time'} . $ic_line_price;
+            }
+          }
+        }
     }
     my $day_oc_all = get_day_oc_all_by_year_month_day($user, $tmp_year, $tmp_month, $tmp_day);
     if ($day_oc_all != 0) {
@@ -811,6 +861,10 @@ post '/get_date_statistic' => sub ($c) {
       my $day_oc_content_with_preview_alink = get_day_oc_txt_content_by_year_month_day_with_preview_alink($user, $tmp_year, $tmp_month, $tmp_day);
       $msg .= $day_oc_content_with_preview_alink . '<hr>';
     }
+    $msg =~ s/<br> all ic: <br>/<br> all ic: $ic_all_between_days<br>/g;
+    $msg =~ s/<br> ic details: <br>/<br> ic details: $ic_details_between_days<br>/g;
+    # get between date ic
+    # 
     $end_t -= ONE_DAY;
   }
 
@@ -828,13 +882,16 @@ get '/:user/:oper' => sub ($c) {
     $c->render(text => 'danger!!!');
     return;
   }
+
   if ($oper eq 'removealldata') {
-    `rm -rf $root_path/$user`;
-    $c->render(text => 'ok');
+    # `rm -rf $root_path/$user`;
+    # $c->render(text => 'ok');
+    $c->render(text => 'removealldata oper BAN!!!!!!!');
     return;
   } elsif ($oper eq 'ic') {
-    $c->stash(content => get_ic_txt_content_origin($user));
-    $c->render(template => 'modifytxtcontent');
+    # $c->stash(content => get_ic_txt_content_origin($user));
+    # $c->render(template => 'modifytxtcontent');
+    $c->render(text => 'update ic func ban now.');
     return;
   } elsif ($oper eq 'txtsdeleteline') {
     $c->stash(txts => get_user_all_txts_path($user));
@@ -861,6 +918,10 @@ get '/txtmodify/:user/:y/:m/#txt' => sub ($c) {
   my $y = $c->stash('y');
   my $m = $c->stash('m');
   my $txt = $c->stash('txt');
+  unless(check_user_route_legal($user)){
+    $c->render(template => 'index');
+    return;
+  }
 
   # say $user, $y, $m, $txt;
 
@@ -883,6 +944,10 @@ get '/delete_txt_line/:user/:y/:m/#txt/:content' => sub ($c) {
   my $m = $c->stash('m');
   my $txt = $c->stash('txt');
   my $content = $c->stash('content');
+  unless(check_user_route_legal($user)){
+    $c->render(template => 'index');
+    return;
+  }
 
   # my $decode_content = decode_base64($content);
   
@@ -923,6 +988,10 @@ post '/set_new_user' => sub ($c) {
   my $user = $c->param('user');
   $c->stash(user => $user);
   $c->stash(oper => $oper);
+  unless(check_user_route_legal($user)){
+    $c->render(template => 'index');
+    return;
+  }
 
   if ($user ne 'ywang') {
     $c->stash(back_msg => 'not administrator, oper denied.');
@@ -959,6 +1028,10 @@ get '/show_record_files/:user/:y/:m/:d/:dir/:uuid8' => sub ($c) {
   my $d = $c->stash('d');
   my $dir = $c->stash('dir');
   my $uuid8 = $c->stash('uuid8');
+  unless(check_user_route_legal($user)){
+    $c->render(template => 'index');
+    return;
+  }
 
   my $path = "$root_path/$user/$y/$m/$dir";
   unless (-d $path) {
@@ -987,6 +1060,11 @@ get '/get_files_img/:user/:y/:m/:dir/#file' => sub ($c) {
   my $m = $c->stash('m');
   my $dir = $c->stash('dir');
   my $file = $c->stash('file');
+  unless(check_user_route_legal($user)){
+    $c->render(template => 'index');
+    return;
+  }
+
   $c->reply->file("$root_path/$user/$y/$m/$dir/$file");
 };
 
@@ -1025,6 +1103,10 @@ __DATA__
     <hr>
     </p>
   % }
+  <p style="text-align: center;">
+    <b onclick="showImg('#')">Refresh</b>
+    <hr>
+  </p>
   <img id="img" src="" width="100%">
   <script type="text/javascript">
     function showImg(path){
@@ -1366,21 +1448,21 @@ __DATA__
   % }
 </p>
 
-<div style="position: relative; margin: 5px; padding: 5px; border: 1px solid #333; height: 100px;">
+<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 100px;">
   <!--fieldset>
     <legend>Title</legend>
   </fieldset-->
-  <form action="/set_ic" method="post" style="position: absolute; font-size: 1.5em;">
+  <form action="/set_ic" method="post" style="font-size: 1.5em;">
     <div style="display: none">
       <input type="text" name="user" value="<%= $c->stash('user') %>">
     </div>
     <div>
-      <label for="icname">ic name: </label>
-      <input type="text" name="icname" id="icname" required>
+      <label for="icname" style="width: 100px;">ic name: </label>
+      <input type="text" name="icname" id="icname" required style="width: calc(100% - 110px);">
     </div>
     <div>
-      <label for="ic">Enter ic: </label>
-      <input type="text" name="ic" id="ic" value="<%= $c->stash('ic') %>" required>
+      <label for="ic" style="width: 100px;">Enter ic: </label>
+      <input type="text" name="ic" id="ic" value="<%= $c->stash('ic') %>" required style="width: calc(100% - 110px);">
     </div>
     <div style="float: right;">
       <input type="submit" value="submit ic!">
@@ -1392,18 +1474,18 @@ __DATA__
 </div>
 
 
-<div style="position: relative; margin: 5px; padding: 5px; border: 1px solid #333; height: 100px;">
-  <form action="/set_oc" method="post" style="position: absolute; font-size: 1.5em;">
+<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 100px;">
+  <form action="/set_oc" method="post" style="font-size: 1.5em;">
     <div style="display: none">
       <input type="text" name="user" value="<%= $c->stash('user') %>">
     </div>
     <div>
-      <label for="ocname">oc name: </label>
-      <input type="text" name="ocname" id="ocname" required>
+      <label for="ocname" style="width: 100px;">oc name: </label>
+      <input type="text" name="ocname" id="ocname" required style="width: calc(100% - 110px);">
     </div>
     <div>
-      <label for="oc">Enter oc: </label>
-      <input type="text" name="oc" id="oc" required>
+      <label for="oc" style="width: 100px;">Enter oc: </label>
+      <input type="text" name="oc" id="oc" required style="width: calc(100% - 110px);">
     </div>
     <div style="float: right;">
       <input type="submit" value="submit oc!">
@@ -1479,13 +1561,9 @@ __DATA__
   </p>
   <%== $c->stash('user_month_oc_all') %>
 
-  <p style="font-size: 1.5em;"><span style="font-weight: bold;">all ic:</span><br>
+  <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic&nbsp;-&nbsp;oc:</span><br>
   </p>
-  <%== $c->stash('user_month_ic_all') %>
-
-  <p style="font-size: 1.5em;"><span style="font-weight: bold;">remain ic:</span><br>
-  </p>
-  <%== $c->stash('user_month_remain_ic') %>
+  <%== $c->stash('user_month_ic_all') .' - '. $c->stash('user_month_oc_all') . ' = ' . $c->stash('user_month_remain_ic') %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic detail:</span><br>
   </p>
