@@ -26,10 +26,11 @@ sub get_uuid_8 {
 sub decode_txt_line {
   my $s = shift;
   my $a = $1 if $s =~ m/\[content:(.*?)\]/;
-  my $b = $1 if $s =~ m/\[time:(.*?)\]/;
-  my $c = $1 if $s =~ m/\[uuid8:(.*?)\]/;
+  my $b = $1 if $s =~ m/\[price:(.*?)\]/;
+  my $c = $1 if $s =~ m/\[time:(.*?)\]/;
+  my $d = $1 if $s =~ m/\[uuid8:(.*?)\]/;
 
-  return {'content' => $a, 'time' => $b, 'uuid8' => $c};
+  return {'content' => $a, 'price' => $b, 'time' => $c, 'uuid8' => $d};
 }
 
 # add span tag to a string
@@ -100,7 +101,7 @@ sub get_ic_txt_content {
   my @arrs = ();
   foreach(split /\n/, $content){
     my $line_h = decode_txt_line($_);
-    push(@arrs, $line_h->{'content'} . ' ' . $line_h->{'time'});
+    push(@arrs, $line_h->{'content'} . ' : ' . $line_h->{'price'} . ' ' . $line_h->{'time'});
   }
   return join('<br>', @arrs);
   # return $content;
@@ -114,7 +115,7 @@ sub get_ic_txt_content_to_arrs {
   my @arrs = ();
   foreach(split /\n/, $content){
     my $line_h = decode_txt_line($_);
-    push(@arrs, $line_h->{'content'} . ' ' . $line_h->{'time'});
+    push(@arrs, $line_h->{'content'} . ' : ' . $line_h->{'price'} . ' ' . $line_h->{'time'});
   }
   return \@arrs;
 };
@@ -138,14 +139,14 @@ sub get_ic_all {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/\[content:.*?:(.*?)\] /gm){
+  while($content =~ m/\[price:(.*?)\] /gm){
     $total += $1;
   }
   return $total;
 };
 
 # get ic by year month arrs ref
-sub get_ic_txt_content_arrs_ref_by_year_month {
+sub get_ic_txt_content_arrs_by_year_month {
   my $user = shift;
   my $year = shift;
   my $month = shift;
@@ -155,12 +156,9 @@ sub get_ic_txt_content_arrs_ref_by_year_month {
   my $content = `cat $path`;
   my @arrs = ();
   foreach(split /\n/, $content){
-    my $line_h = decode_txt_line($_);
+    # my $line_h = decode_txt_line($_);
     # push(@arrs, decode_utf8 ($line_h->{'content'} ) . ' ' . $line_h->{'time'});
-    push(@arrs, {
-      content => $line_h->{'content'},
-      time => $line_h->{'time'}
-    });
+    push(@arrs, $_);
   }
   return \@arrs;
 };
@@ -177,7 +175,7 @@ sub get_ic_txt_content_by_year_month {
   my @arrs = ();
   foreach(split /\n/, $content){
     my $line_h = decode_txt_line($_);
-    push(@arrs, decode_utf8 ($line_h->{'content'} ) . ' ' . $line_h->{'time'});
+    push(@arrs, decode_utf8($line_h->{'content'}) . ' : ' . $line_h->{'price'} . ' ' . $line_h->{'time'});
   }
   return join('<br>', @arrs);
 };
@@ -192,7 +190,7 @@ sub get_ic_all_by_year_month {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/\[content:.*?:(.*?)\] /gm){
+  while($content =~ m/\[price:(.*?)\] /gm){
     $total += $1;
   }
   return $total;
@@ -226,7 +224,7 @@ sub get_day_oc_txt_content_by_year_month_day {
   my @arrs = ();
   foreach(split /\n/, $content){
     my $line_h = decode_txt_line($_);
-    push(@arrs, decode_utf8( $line_h->{'content'} ) . ' ' . $line_h->{'time'});
+    push(@arrs, decode_utf8($line_h->{'content'}) . ' : ' . $line_h->{'price'} . ' ' . $line_h->{'time'});
   }
   return join('<br>', @arrs);
 };
@@ -250,13 +248,13 @@ sub get_day_oc_txt_content_by_year_month_day_with_preview_alink {
       $files_number = `ls ./kadata/$user/$year/$month/oc$day\_EPC | grep '$tmp_uuid8' | wc -l`;
       chomp($files_number);
       if ($files_number != 0){
-        push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
+        push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
         "<a href='/show_record_files/$user/$year/$month/$day/oc$day\_EPC/$tmp_uuid8'>Preview</a>");
       }else{
-        push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' ' . decode_txt_line($_)->{'time'});
+        push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
       }
     } else {
-      push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' ' . decode_txt_line($_)->{'time'});
+      push(@arrs, decode_utf8( decode_txt_line($_)->{'content'} ) . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
     }
   }
   return join('<hr>', @arrs);
@@ -276,7 +274,7 @@ sub get_day_oc_txt_content_by_year_month_day_with_uuid8 {
   foreach(split /\n/, $content){
     my $line_h = decode_txt_line($_);
     if ($line_h->{'uuid8'} eq $uuid8){
-      push(@arrs, decode_utf8( $line_h->{'content'} ) . ' ' . $line_h->{'time'});
+      push(@arrs, decode_utf8( $line_h->{'content'} ) . ' : ' . $line_h->{'price'} . ' ' . $line_h->{'time'});
     }
   }
   return join('<br>', @arrs);
@@ -296,14 +294,14 @@ sub get_month_oc_content_to_arrs {
     if (-e $tmp_day_path) {
       my $content_ = `cat $tmp_day_path`;
       my $total_ = 0;
-      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+      while($content_ =~ m/\[price:(.*?)\] \[.*\]\n/g){
         $total_ += $1;
       }
       # $content_ =~ s/\n/<br>/g;
       push(@all_content, "<b>day-$day ($total_\$):</b>");
       my @arrs = split /\n/, $content_;
       foreach(@arrs) {
-        push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'});
+        push(@all_content, decode_txt_line($_)->{'content'} . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
       }
       # $all_content .= "<br>day-$day ($total_\$):<br>" . $content_;
     } else {
@@ -328,7 +326,7 @@ sub get_month_oc_content_to_arrs_with_preview_alink {
     if (-e $tmp_day_path) {
       my $content_ = `cat $tmp_day_path`;
       my $total_ = 0;
-      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+      while($content_ =~ m/\[price:(.*?)\] \[.*\]\n/g){
         $total_ += $1;
       }
 
@@ -344,13 +342,13 @@ sub get_month_oc_content_to_arrs_with_preview_alink {
           $files_number = `ls ./kadata/$user/$year/$month/oc$day\_EPC | grep '$tmp_uuid8' | wc -l`;
           chomp($files_number);
           if ($files_number != 0){
-            push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
+            push(@all_content, decode_txt_line($_)->{'content'} . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
             "<a href='/show_record_files/$user/$year/$month/$day/oc$day\_EPC/$tmp_uuid8'>Preview</a>");
           }else{
-            push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'});
+            push(@all_content, decode_txt_line($_)->{'content'} . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
           }
         } else {
-          push(@all_content, decode_txt_line($_)->{'content'} . ' ' . decode_txt_line($_)->{'time'});
+          push(@all_content, decode_txt_line($_)->{'content'} . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
         }
       }
       # $all_content .= "<br>day-$day ($total_\$):<br>" . $content_;
@@ -369,7 +367,7 @@ sub get_today_oc_all {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+  while($content =~ m/\[price:(.*?)\] \[.*\]\n/g){
     $total += $1;
   }
   return $total;
@@ -386,7 +384,7 @@ sub get_day_oc_all_by_year_month_day {
   return '0' unless -e $path;
   my $content = `cat $path`;
   my $total = 0;
-  while($content =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+  while($content =~ m/\[price:(.*?)\] \[.*\]\n/g){
     $total += $1;
   }
   return $total;
@@ -405,7 +403,7 @@ sub get_month_oc_all {
     if (-e $tmp_day_path) {
       my $content_ = `cat $tmp_day_path`;
       my $total_ = 0;
-      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+      while($content_ =~ m/\[price:(.*?)\] \[.*\]\n/g){
         $total_ += $1;
       }
       $total += $total_;
@@ -431,7 +429,7 @@ sub get_month_oc_all_by_year_month {
     if (-e $tmp_day_path) {
       my $content_ = `cat $tmp_day_path`;
       my $total_ = 0;
-      while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+      while($content_ =~ m/\[price:(.*?)\] \[.*\]\n/g){
         $total_ += $1;
       }
       $total += $total_;
@@ -472,7 +470,7 @@ sub get_months_ic_all_by_date_start_end {
           my $path = "$root_path/$user/$y/$m/ic.txt";
           my $content = `cat $path`;
           my $total = 0;
-          while($content =~ m/\[content:.*?:(.*?)\] /gm){
+          while($content =~ m/\[price:(.*?)\] /gm){
             $total += $1;
           }
           $total_ic += $total;
@@ -509,7 +507,7 @@ sub get_days_oc_all_by_date_start_end {
       if (-e $tmp_day_path) {
         my $content_ = `cat $tmp_day_path`;
         my $total_ = 0;
-        while($content_ =~ m/\[content:.*?:(.*?)\] \[.*\]\n/g){
+        while($content_ =~ m/\[price:(.*?)\] \[.*\]\n/g){
           $total_ += $1;
         }
         $total_oc += $total_;
@@ -560,7 +558,7 @@ sub set_ic_txt_line_data {
   my $path = get_user_ic_data_path($user);
   `touch $path` unless -e $path;
   open(my $out, ">>", "$path");
-  say $out "[content:$ic_name:$ic_number] " . get_date_time() . ' [uuid8:' . get_uuid_8() . ']';
+  say $out "[content:$ic_name] " . "[price:$ic_number] " . get_date_time() . ' [uuid8:' . get_uuid_8() . ']';
   close $out;
 };
 
@@ -573,7 +571,7 @@ sub set_oc_txt_line_data {
   my $path = get_user_today_oc_data_path($user);
   `touch $path` unless -e $path;
   open(my $out, ">>", "$path");
-  say $out "[content:$oc_name:$oc_number] " . get_date_time() . ' [uuid8:' . get_uuid_8() . ']';
+  say $out "[content:$oc_name] " . "[price:$oc_number] " . get_date_time() . ' [uuid8:' . get_uuid_8() . ']';
   close $out;
 };
 
@@ -608,7 +606,7 @@ sub get_txt_uuid_to_array {
     open(my $in,  "<",  "$root_path/$user/$y/$m/$txt")  or die "Can't open input.txt: $!";
     while (<$in>) {     # assigns each line in turn to $_
       chomp;
-      my $uuid =  $1 if $_ =~ m/\[uuid:(.*?)\]/;
+      my $uuid =  $1 if $_ =~ m/\[uuid8:(.*?)\]/;
       push(@txts_uuid_arrs, $uuid);
     }
     close $in or die "$in: $!";
@@ -707,7 +705,7 @@ post '/upload_file' => sub ($c) {
   my $day = $c->param('day');
   my $user = $c->param('user');
   my $uuid8 = $c->param('uuid8');
-  my $content_as_file_name = $1 if $c->param('content_as_file_name') =~ m/(.*?):/;
+  my $content_as_file_name = $c->param('content_as_file_name');
   # my $record_str_origin = $c->param('record_str');
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
@@ -843,14 +841,15 @@ post '/get_date_statistic' => sub ($c) {
     if ($tmp_day == 1 or $start_t == $end_t) {
         $month_end_flag = 1;
 
-        my $ic_arrs = get_ic_txt_content_arrs_ref_by_year_month($user, $tmp_year, $tmp_month);
+        my $ic_arrs = get_ic_txt_content_arrs_by_year_month($user, $tmp_year, $tmp_month);
         if ($ic_arrs ne '') {
           foreach my $ic_line (@$ic_arrs) {
-            my $ic_line_date = $1 if $ic_line->{'time'} =~ m/(.*?) /;
-            my $ic_line_price = $1 if $ic_line->{'content'} =~ m/:(.*?)/;
+            my $ic_line_date = $1 if $ic_line =~ m/\[time:(.*?) \]/;
+            my $ic_line_price = $1 if $ic_line =~ m/\[price:(.*?)\]/;
+            my $ic_line_content = $1 if $ic_line =~ m/\[content:(.*?)\]/;
 
             if($ic_line_date ge $datestart and $ic_line_date le $dateend) {
-              $ic_details_between_days .= '<br>' . decode_utf8($ic_line->{'content'}) . ' ' . $ic_line->{'time'} . $ic_line_price;
+              $ic_details_between_days .= "<br> $ic_line_content $ic_line_date $ic_line_price";
             }
           }
         }
@@ -1264,10 +1263,10 @@ __DATA__
   <fieldset>
     <legend>date selected</legend>
     <label for="datestart">start:</label>
-    <input id="datestart" type="date" name="datestart" value="<%= $c->flash('datestart') eq '' ? '2022-10-01' : $c->flash('datestart') %>">
+    <input id="datestart" type="date" name="datestart" value="<%= $c->flash('datestart') eq '' ? '2022-11-01' : $c->flash('datestart') %>">
     <br>
     <label for="dateend">end:</label>
-    <input id="dateend" type="date" name="dateend" value="<%= $c->flash('dateend') eq '' ? '2022-12-31' : $c->flash('dateend') %>">
+    <input id="dateend" type="date" name="dateend" value="<%= $c->flash('dateend') eq '' ? '2022-11-30' : $c->flash('dateend') %>">
   </fieldset>
   <div style="float: right;">
     <!--input type="button" value="Year!" onclick="setYearToForm()"-->
@@ -1501,7 +1500,7 @@ __DATA__
   <!--%== $c->stash('user_today_oc_content') %-->
   % foreach(@{$c->stash('user_today_oc_content_arrs_ref')}) {
     % my $uuid_8 = $_->{'uuid8'};
-    <span id="<%= $uuid_8 %>"><%== decode_utf8( $_->{'content'} ) . ' ' . $_->{'time'} %></span>
+    <span id="<%= $uuid_8 %>"><%== decode_utf8( $_->{'content'} ) . ' : ' . $_->{'price'} . ' ' . $_->{'time'} %></span>
     % my $upload_files_number = `ls ./kadata/$user/$year/$month/oc$day\_EPC | grep '$uuid_8' | wc -l`;
     % chomp($upload_files_number);
     <span style="color: pink;"><%= $upload_files_number == 0 ? $upload_files_number : $upload_files_number %></span>
@@ -1559,7 +1558,7 @@ __DATA__
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">month all oc:</span><br>
   </p>
-  <%== $c->stash('user_month_oc_all') %>
+  <%== $c->stash('user_month_oc_all') . ', avg: ' . sprintf("%.3f", $c->stash('user_month_oc_all') / $day) . ' $' %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic&nbsp;-&nbsp;oc:</span><br>
   </p>
@@ -1618,6 +1617,7 @@ __DATA__
 2022-10-24 method and style
 2022-10-25 zengjia wenjian shagnchuan EPC(Electronic Payment Voucher)
 2022-10-31 zengjia lishi oc jilu de preview alink
+2022-11-03 file format update[price tag]
 # coding
 # design
 # dev
