@@ -8,6 +8,10 @@ use Time::Seconds;
 # set request max limit size
 BEGIN {
     $ENV{MOJO_MAX_MESSAGE_SIZE} = 2 * 1024 * 1024 * 1024; # 2 GB
+    $ENV{MOJO_MAX_BUFFER_SIZE} = 2 * 1024 * 1024 * 1024; # 2 GB
+    $ENV{MOJO_MAX_LEFTOVER_SIZE} = 2 * 1024 * 1024 * 1024; # 2 GB
+    $ENV{MOJO_MAX_LINE_SIZE} = 2 * 1024 * 1024 * 1024; # 2 GB
+    
 };
 
 my $root_path = './kadata';
@@ -158,7 +162,7 @@ sub get_ic_txt_content_arrs_by_year_month {
   foreach(split /\n/, $content){
     # my $line_h = decode_txt_line($_);
     # push(@arrs, decode_utf8 ($line_h->{'content'} ) . ' ' . $line_h->{'time'});
-    push(@arrs, $_);
+    push(@arrs, decode_txt_line($_));
   }
   return \@arrs;
 };
@@ -800,11 +804,11 @@ post '/set_txt_content' => sub ($c) {
 };
 
 # get data between date from start to end
-post '/get_date_statistic' => sub ($c) {
+post '/:user/get_date_statistic' => sub ($c) {
   my $datestart = $c->param('datestart');
   my $dateend = $c->param('dateend');
   my $oper = $c->param('oper');
-  my $user = $c->param('user');
+  my $user = $c->stash('user');
   my $msg = '';
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
@@ -825,11 +829,13 @@ post '/get_date_statistic' => sub ($c) {
   $msg .= add_str_start_end_b_tag( '<br> from ' . $datestart . ' to ' . $dateend . '<br>' );
   $msg .= '<br> all ic: <br>';
   $msg .= '<br> ic details: <br>';
-  $msg .= '<br> all oc: ' . $oc_all_by_start_end_day . '<br>';
+  $msg .= add_str_start_end_b_tag( '<br> all oc: ' ) . $oc_all_by_start_end_day . '<br>';
+  $msg .= '<br> avg oc: <br>';
   $msg .= add_str_start_end_b_tag( '<br> days detail: <br>' );
 
   my $ic_all_between_days = 0;
   my $ic_details_between_days = '';
+  my $days_count = 0;
 
   my $FORMAT = '%Y-%m-%d';
   my $start_t = Time::Piece->strptime($datestart, $FORMAT );
@@ -844,12 +850,13 @@ post '/get_date_statistic' => sub ($c) {
         my $ic_arrs = get_ic_txt_content_arrs_by_year_month($user, $tmp_year, $tmp_month);
         if ($ic_arrs ne '') {
           foreach my $ic_line (@$ic_arrs) {
-            my $ic_line_date = $1 if $ic_line =~ m/\[time:(.*?) \]/;
-            my $ic_line_price = $1 if $ic_line =~ m/\[price:(.*?)\]/;
-            my $ic_line_content = $1 if $ic_line =~ m/\[content:(.*?)\]/;
+            my $ic_line_date = $1 if $ic_line->{'time'} =~ m/(.*) /;
+            my $ic_line_price = $ic_line->{'price'};
+            my $ic_line_content = decode_utf8($ic_line->{'content'});
 
             if($ic_line_date ge $datestart and $ic_line_date le $dateend) {
-              $ic_details_between_days .= "<br> $ic_line_content $ic_line_date $ic_line_price";
+              $ic_details_between_days .= "<br> $ic_line_content : " . $ic_line->{'time'} . " $ic_line_price";
+              $ic_all_between_days = $ic_all_between_days + $ic_line_price;
             }
           }
         }
@@ -859,18 +866,23 @@ post '/get_date_statistic' => sub ($c) {
       $msg .= add_str_start_end_b_tag( '<br>' . $tmp_date . '( '. $day_oc_all .' $): <br>' );
       my $day_oc_content_with_preview_alink = get_day_oc_txt_content_by_year_month_day_with_preview_alink($user, $tmp_year, $tmp_month, $tmp_day);
       $msg .= $day_oc_content_with_preview_alink . '<hr>';
+
+      $days_count = $days_count + 1;
     }
-    $msg =~ s/<br> all ic: <br>/<br> all ic: $ic_all_between_days<br>/g;
-    $msg =~ s/<br> ic details: <br>/<br> ic details: $ic_details_between_days<br>/g;
-    # get between date ic
     # 
     $end_t -= ONE_DAY;
   }
+  $msg =~ s/<br> all ic: <br>/<br> <b>all ic:<\/b> $ic_all_between_days<br>/g;
+  $msg =~ s/<br> ic details: <br>/<br> <b>ic details:<\/b> $ic_details_between_days<br>/g;
+  my $avg_oc = 0;
+  $avg_oc = sprintf("%.3f", $oc_all_by_start_end_day / $days_count) if $days_count != 0;
+  $msg =~ s/<br> avg oc: <br>/<br> <b>oc days:<\/b> $days_count , <b>avg oc:<\/b> $avg_oc<br>/g;
 
-  $c->flash(datestart => $datestart);
-  $c->flash(dateend => $dateend);
-  $c->flash(msg => $msg);
-  $c->redirect_to("/$user/$oper");
+  $c->stash(datestart => $datestart);
+  $c->stash(dateend => $dateend);
+  $c->stash(msg => $msg);
+  $c->render(template => 'datestatistic');
+  # return;
 };
 
 # danger route
@@ -1253,7 +1265,7 @@ __DATA__
    | 
   <a href="/<%= $c->stash('user') %>">back home</a>
 </p>
-<form action="/get_date_statistic" method="post" style="font-size: 1.5em">
+<form action="/<%= $c->stash('user') %>/get_date_statistic" method="post" style="font-size: 1.5em">
   <div style="display: none">
     <input type="text" name="user" value="<%= $c->stash('user') %>">
   </div>
@@ -1263,10 +1275,10 @@ __DATA__
   <fieldset>
     <legend>date selected</legend>
     <label for="datestart">start:</label>
-    <input id="datestart" type="date" name="datestart" value="<%= $c->flash('datestart') eq '' ? '2022-11-01' : $c->flash('datestart') %>">
+    <input id="datestart" type="date" name="datestart" value="<%= $c->stash('datestart') eq '' ? '2022-11-01' : $c->stash('datestart') %>">
     <br>
     <label for="dateend">end:</label>
-    <input id="dateend" type="date" name="dateend" value="<%= $c->flash('dateend') eq '' ? '2022-11-30' : $c->flash('dateend') %>">
+    <input id="dateend" type="date" name="dateend" value="<%= $c->stash('dateend') eq '' ? '2022-11-30' : $c->stash('dateend') %>">
   </fieldset>
   <div style="float: right;">
     <!--input type="button" value="Year!" onclick="setYearToForm()"-->
@@ -1283,10 +1295,10 @@ __DATA__
 
 <p>Detail: </p>
 
-% if ($c->flash('msg') ne '') {
+% if ($c->stash('msg') ne '') {
   <div style="border: 1px solid #333; padding: 5px;">
     <p>
-      <%== $c->flash('msg') %>
+      <%== $c->stash('msg') %>
     </p>
   </div>
 % }
@@ -1560,7 +1572,7 @@ __DATA__
   </p>
   <%== $c->stash('user_month_oc_all') . ', avg: ' . sprintf("%.3f", $c->stash('user_month_oc_all') / $day) . ' $' %>
 
-  <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic&nbsp;-&nbsp;oc:</span><br>
+  <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic&nbsp;-&nbsp;oc&nbsp;=&nbsp;:</span><br>
   </p>
   <%== $c->stash('user_month_ic_all') .' - '. $c->stash('user_month_oc_all') . ' = ' . $c->stash('user_month_remain_ic') %>
 
@@ -1568,7 +1580,7 @@ __DATA__
   </p>
   <%== $c->stash('user_month_ic_content') %>
 
-  <p style="font-size: 1.5em;"><span style="font-weight: bold;">month detail:</span><br>
+  <p style="font-size: 1.5em;"><span style="font-weight: bold;">month oc detail:</span><br>
   </p>
   <%== $c->stash('user_month_oc_content') %>
 </div>
