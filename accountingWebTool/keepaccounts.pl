@@ -1275,13 +1275,15 @@ __DATA__
   <fieldset>
     <legend>date selected</legend>
     <label for="datestart">start:</label>
-    <input id="datestart" type="date" name="datestart" value="<%= $c->stash('datestart') eq '' ? '2022-11-01' : $c->stash('datestart') %>">
+    <input id="datestart" type="date" name="datestart" value="<%= $c->stash('datestart') eq '' ? '2022-11-01' : $c->stash('datestart') %>" style="width: calc(100% - 20px);">
     <br>
     <label for="dateend">end:</label>
-    <input id="dateend" type="date" name="dateend" value="<%= $c->stash('dateend') eq '' ? '2022-11-30' : $c->stash('dateend') %>">
+    <input id="dateend" type="date" name="dateend" value="<%= $c->stash('dateend') eq '' ? '2022-11-30' : $c->stash('dateend') %>" style="width: calc(100% - 20px);">
   </fieldset>
   <div style="float: right;">
     <!--input type="button" value="Year!" onclick="setYearToForm()"-->
+    <input type="button" value="Prev M!" onclick="getMonthStartAndEnd(-1)">
+    <input type="button" value="Prev W!" onclick="getWeekStartAndEnd(-1)">
     <input type="button" value="Month!" onclick="setMonthToForm()">
     <input type="button" value="Week!" onclick="
     document.getElementById('datestart').value=getCurrentWeekFirstDay(new Date()); document.getElementById('dateend').value=getCurrentWeekLastDay(new Date());
@@ -1289,7 +1291,9 @@ __DATA__
     <input type="button" value="Today!" onclick="
     document.getElementById('datestart').value=new Date().format('yyyy-MM-dd'); document.getElementById('dateend').value=new Date().format('yyyy-MM-dd');
     ">
-    <input type="submit" value="submit!">
+    <div style="float: right;">
+      <input type="submit" value="submit!">
+    </div>
   </div>
 </form>
 
@@ -1379,6 +1383,61 @@ __DATA__
       }
       return weekLastDay.getFullYear() + '-' + lastMonth + '-' + weekLastDays;
   }
+
+  // 0 current -1 up 1 next month
+  function getMonthStartAndEnd(AddMonthCount) { 
+    //起止日期数组  
+    let startStop = new Array(); 
+    //获取当前时间  
+    let currentDate = new Date();
+    let month=currentDate.getMonth()+AddMonthCount;
+    if(month<0){
+      let n = parseInt((-month)/12);
+      month += n*12;
+      currentDate.setFullYear(currentDate.getFullYear()-n);
+    }
+    currentDate = new Date(currentDate.setMonth(month));
+    //获得当前月份0-11  
+    let currentMonth = currentDate.getMonth(); 
+    //获得当前年份4位年  
+    let currentYear = currentDate.getFullYear(); 
+    //获得上一个月的第一天  
+    let currentMonthFirstDay = new Date(currentYear, currentMonth,1); 
+    //获得上一月的最后一天  
+    let currentMonthLastDay = new Date(currentYear, currentMonth+1, 0); 
+    let a = currentMonthFirstDay.format('yyyy-MM-dd');
+    let b = currentMonthLastDay.format('yyyy-MM-dd');
+
+    document.getElementById('datestart').value= a; 
+    document.getElementById('dateend').value=b;
+  }
+
+  // 0 current -1 up 1 next week
+  function getWeekStartAndEnd(AddWeekCount) { 
+  //起止日期数组  
+    let startStop = new Array(); 
+    //一天的毫秒数  
+    let millisecond = 1000 * 60 * 60 * 24; 
+    //获取当前时间  
+    let currentDate = new Date();
+    //相对于当前日期AddWeekCount个周的日期
+    currentDate = new Date(currentDate.getTime() + (millisecond * 7*AddWeekCount));
+    //返回date是一周中的某一天
+    let week = currentDate.getDay(); 
+    //返回date是一个月中的某一天  
+    let month = currentDate.getDate();
+    //减去的天数  
+    let minusDay = week != 0 ? week - 1 : 6; 
+    //获得当前周的第一天  
+    let currentWeekFirstDay = new Date(currentDate.getTime() - (millisecond * minusDay)); 
+    //获得当前周的最后一天
+    let currentWeekLastDay = new Date(currentWeekFirstDay.getTime() + (millisecond * 6));
+    let a = currentWeekFirstDay.format('yyyy-MM-dd');
+    let b = currentWeekLastDay.format('yyyy-MM-dd');
+
+    document.getElementById('datestart').value= a; 
+    document.getElementById('dateend').value=b;
+  } 
 
 </script>
 
