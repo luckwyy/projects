@@ -831,11 +831,13 @@ post '/:user/get_date_statistic' => sub ($c) {
   $msg .= '<br> ic details: <br>';
   $msg .= add_str_start_end_b_tag( '<br> all oc: ' ) . $oc_all_by_start_end_day . '<br>';
   $msg .= '<br> avg oc: <br>';
+  $msg .= '<br> day avg oc: <br>';
   $msg .= add_str_start_end_b_tag( '<br> days detail: <br>' );
 
   my $ic_all_between_days = 0;
   my $ic_details_between_days = '';
   my $days_count = 0;
+  my $avg_days_count = 0;
 
   my $FORMAT = '%Y-%m-%d';
   my $start_t = Time::Piece->strptime($datestart, $FORMAT );
@@ -855,7 +857,7 @@ post '/:user/get_date_statistic' => sub ($c) {
             my $ic_line_content = decode_utf8($ic_line->{'content'});
 
             if($ic_line_date ge $datestart and $ic_line_date le $dateend) {
-              $ic_details_between_days .= "<br> $ic_line_content : " . $ic_line->{'time'} . " $ic_line_price";
+              $ic_details_between_days .= "<br> $ic_line_content : $ic_line_price " . $ic_line->{'time'};
               $ic_all_between_days = $ic_all_between_days + $ic_line_price;
             }
           }
@@ -870,6 +872,7 @@ post '/:user/get_date_statistic' => sub ($c) {
       $days_count = $days_count + 1;
     }
     # 
+    $avg_days_count = $avg_days_count + 1;
     $end_t -= ONE_DAY;
   }
   $msg =~ s/<br> all ic: <br>/<br> <b>all ic:<\/b> $ic_all_between_days<br>/g;
@@ -877,6 +880,9 @@ post '/:user/get_date_statistic' => sub ($c) {
   my $avg_oc = 0;
   $avg_oc = sprintf("%.3f", $oc_all_by_start_end_day / $days_count) if $days_count != 0;
   $msg =~ s/<br> avg oc: <br>/<br> <b>oc days:<\/b> $days_count , <b>avg oc:<\/b> $avg_oc<br>/g;
+  $avg_oc = 0;
+  $avg_oc = sprintf("%.3f", $oc_all_by_start_end_day / $avg_days_count) if $avg_days_count != 0;
+  $msg =~ s/<br> day avg oc: <br>/<br> <b>all days:<\/b> $avg_days_count , <b>avg oc:<\/b> $avg_oc<br>/g;
 
   $c->stash(datestart => $datestart);
   $c->stash(dateend => $dateend);
@@ -1281,7 +1287,8 @@ __DATA__
     <input id="dateend" type="date" name="dateend" value="<%= $c->stash('dateend') eq '' ? '2022-11-30' : $c->stash('dateend') %>" style="width: calc(100% - 20px);">
   </fieldset>
   <div style="float: right;">
-    <!--input type="button" value="Year!" onclick="setYearToForm()"-->
+    <input type="button" value="back back M!" onclick="getbackMonthByClick()">
+    <input type="button" value="back back W!" onclick="getbackWeekByClick()">
     <input type="button" value="Prev M!" onclick="getMonthStartAndEnd(-1)">
     <input type="button" value="Prev W!" onclick="getWeekStartAndEnd(-1)">
     <input type="button" value="Month!" onclick="setMonthToForm()">
@@ -1384,6 +1391,12 @@ __DATA__
       return weekLastDay.getFullYear() + '-' + lastMonth + '-' + weekLastDays;
   }
 
+  let back_back_m = -1;
+  function getbackMonthByClick() {
+    getMonthStartAndEnd(back_back_m);
+    back_back_m = back_back_m - 1;
+  }
+
   // 0 current -1 up 1 next month
   function getMonthStartAndEnd(AddMonthCount) { 
     //起止日期数组  
@@ -1410,6 +1423,12 @@ __DATA__
 
     document.getElementById('datestart').value= a; 
     document.getElementById('dateend').value=b;
+  }
+
+  let back_back_w = -1;
+  function getbackWeekByClick() {
+    getWeekStartAndEnd(back_back_w);
+    back_back_w = back_back_w - 1;
   }
 
   // 0 current -1 up 1 next week
@@ -1495,8 +1514,9 @@ __DATA__
 % my $day = $c->stash('day');
 
 <p style="text-align: center; font-size: 1.5em;">
-  <span style="font-weight: bold;"></span>
+  <span style="font-weight: bold;">
   <%= $c->stash('user') %>&nbsp;&nbsp;
+  </span>
   <%== $c->stash('year') %>-
   <%== $c->stash('month') %>-
   <span style="font-weight: bold;"><%== $c->stash('day') %></span>
