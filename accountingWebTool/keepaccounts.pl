@@ -757,6 +757,7 @@ get '/:user' => sub ($c) {
   my $user_month_oc_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_month_oc_content_to_arrs_with_preview_alink($user)} ) ) );
   my $user_month_ic_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_ic_txt_content_to_arrs($user)} ) ) );
   my $user_month_remain_ic = $user_month_ic_all - $user_month_oc_all;
+  my $user_month_oc_without_ic = $user_month_oc_all - $user_month_ic_all;
 
   $c->stash(
     year => $year,
@@ -769,7 +770,8 @@ get '/:user' => sub ($c) {
     user_month_ic_all => $user_month_ic_all,
     user_month_ic_content => $user_month_ic_content,
     user_month_oc_content => $user_month_oc_content,
-    user_month_remain_ic => $user_month_remain_ic
+    user_month_remain_ic => $user_month_remain_ic,
+    user_month_oc_without_ic => $user_month_oc_without_ic
   );
 
   $c->render(template => 'user');
@@ -832,6 +834,7 @@ post '/:user/get_date_statistic' => sub ($c) {
   $msg .= add_str_start_end_b_tag( '<br> all oc: ' ) . $oc_all_by_start_end_day . '<br>';
   $msg .= '<br> avg oc: <br>';
   $msg .= '<br> day avg oc: <br>';
+  $msg .= '<br> ic - oc = : <br>';
   $msg .= add_str_start_end_b_tag( '<br> days detail: <br>' );
 
   my $ic_all_between_days = 0;
@@ -883,6 +886,8 @@ post '/:user/get_date_statistic' => sub ($c) {
   $avg_oc = 0;
   $avg_oc = sprintf("%.3f", $oc_all_by_start_end_day / $avg_days_count) if $avg_days_count != 0;
   $msg =~ s/<br> day avg oc: <br>/<br> <b>all days:<\/b> $avg_days_count , <b>avg oc:<\/b> $avg_oc<br>/g;
+  my $diff = $ic_all_between_days - $oc_all_by_start_end_day;
+  $msg =~ s/<br> ic - oc = : <br>/<br> <b>ic - oc:<\/b> $ic_all_between_days - $oc_all_by_start_end_day = $diff <br>/g;
 
   $c->stash(datestart => $datestart);
   $c->stash(dateend => $dateend);
@@ -1649,11 +1654,13 @@ __DATA__
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">month all oc:</span><br>
   </p>
-  <%== $c->stash('user_month_oc_all') . ', avg: ' . sprintf("%.3f", $c->stash('user_month_oc_all') / $day) . ' $' %>
+  <%== $c->stash('user_month_oc_all') . ' , avg: ' . sprintf("%.3f", $c->stash('user_month_oc_all') / $day) . ' $' %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic&nbsp;-&nbsp;oc&nbsp;=&nbsp;:</span><br>
   </p>
   <%== $c->stash('user_month_ic_all') .' - '. $c->stash('user_month_oc_all') . ' = ' . $c->stash('user_month_remain_ic') %>
+  <br>
+  <%== 'oc without ic avg: ' . sprintf("%.3f", $c->stash('user_month_oc_without_ic') / $day) . ' $' %>
 
   <p style="font-size: 1.5em;"><span style="font-weight: bold;">ic detail:</span><br>
   </p>
