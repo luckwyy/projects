@@ -317,7 +317,7 @@ sub get_month_oc_content_to_arrs {
 };
 
 # return month oc content with files preview alink
-sub get_month_oc_content_to_arrs_with_preview_alink {
+sub get_month_oc_content_to_arrs_with_preview_alink_editlink {
   my $user = shift;
 
   my ($year, $month, $day) = get_year_month_day();
@@ -346,13 +346,20 @@ sub get_month_oc_content_to_arrs_with_preview_alink {
           $files_number = `ls ./kadata/$user/$year/$month/oc$day\_EPC | grep '$tmp_uuid8' | wc -l`;
           chomp($files_number);
           if ($files_number != 0){
-            push(@all_content, decode_txt_line($_)->{'content'} . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
+            my $content_edit_link = decode_txt_line($_)->{'content'};
+            $content_edit_link =  "<a href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
+            push(@all_content, $content_edit_link . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
             "<a href='/show_record_files/$user/$year/$month/$day/oc$day\_EPC/$tmp_uuid8'>Preview</a>");
           }else{
-            push(@all_content, decode_txt_line($_)->{'content'} . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
+            my $content_edit_link = decode_txt_line($_)->{'content'};
+            $content_edit_link =  "<a href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
+            push(@all_content, $content_edit_link . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
           }
         } else {
-          push(@all_content, decode_txt_line($_)->{'content'} . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
+          my $tmp_uuid8 = decode_txt_line($_)->{'uuid8'};
+          my $content_edit_link = decode_txt_line($_)->{'content'};
+          $content_edit_link =  "<a href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
+          push(@all_content, $content_edit_link . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
         }
       }
       # $all_content .= "<br>day-$day ($total_\$):<br>" . $content_;
@@ -754,7 +761,7 @@ get '/:user' => sub ($c) {
   my $user_today_oc_all = get_today_oc_all($user);
   my $user_month_oc_all = get_month_oc_all($user);
   my $user_month_ic_all = get_ic_all($user);
-  my $user_month_oc_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_month_oc_content_to_arrs_with_preview_alink($user)} ) ) );
+  my $user_month_oc_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_month_oc_content_to_arrs_with_preview_alink_editlink($user)} ) ) );
   my $user_month_ic_content = decode_utf8( join('<hr>', map( add_str_start_end_span_tag($_), @{get_ic_txt_content_to_arrs($user)} ) ) );
   my $user_month_remain_ic = $user_month_ic_all - $user_month_oc_all;
   my $user_month_oc_without_ic = $user_month_oc_all - $user_month_ic_all;
@@ -1090,6 +1097,15 @@ get '/get_files_img/:user/:y/:m/:dir/#file' => sub ($c) {
   $c->reply->file("$root_path/$user/$y/$m/$dir/$file");
 };
 
+get '/line_content_modify/:user/:y/:m/:d/:uuid8' => sub ($c) {
+  my $user = $c->stash('user');
+  my $y = $c->stash('y');
+  my $m = $c->stash('m');
+  my $d = $c->stash('d');
+  my $uuid8 = $c->stash('uuid8');
+
+  $c->render(text => "$user,$y,$m,$d,$uuid8");
+};
 
 app->start;
 __DATA__
