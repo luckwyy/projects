@@ -49,6 +49,12 @@ sub add_str_start_end_b_tag {
   return '<b>' . $s . '</b>';
 };
 
+# 
+sub get_user_calendar_txt_path {
+  my $user = shift;
+  return "$root_path/$user.calendar";
+};
+
 use POSIX qw(strftime);
 # return year, month and day str
 sub get_year_month_day () {
@@ -233,6 +239,28 @@ sub get_day_oc_txt_content_by_year_month_day {
   return join('<br>', @arrs);
 };
 
+# return a line oc content by y m d uuid
+sub get_day_oc_txt_content_by_year_month_day_uuid8 {
+  my $user = shift;
+  my $year = shift;
+  my $month = shift;
+  my $day = shift;
+  my $uuid8 = shift;
+
+  my $path = "$root_path/$user/$year/$month/oc$day.txt";
+  return {} unless -e $path;
+  my $content = `cat $path`;
+  my $ref = {};
+  foreach(split /\n/, $content){
+    my $line_h = decode_txt_line($_);
+    if ($line_h->{'uuid8'} eq $uuid8) {
+      $line_h->{'content'} = decode_utf8($line_h->{'content'});
+      $ref = $line_h;
+    }
+  }
+  return $ref;
+};
+
 # return oc content by year month day with preview alink
 sub get_day_oc_txt_content_by_year_month_day_with_preview_alink {
   my $user = shift;
@@ -347,18 +375,18 @@ sub get_month_oc_content_to_arrs_with_preview_alink_editlink {
           chomp($files_number);
           if ($files_number != 0){
             my $content_edit_link = decode_txt_line($_)->{'content'};
-            $content_edit_link =  "<a href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
+            $content_edit_link =  "<a style='pointer-events: none; color: gray;' href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
             push(@all_content, $content_edit_link . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'} . ' <span style="color: pink;">' . $files_number . '</span> ' . 
             "<a href='/show_record_files/$user/$year/$month/$day/oc$day\_EPC/$tmp_uuid8'>Preview</a>");
           }else{
             my $content_edit_link = decode_txt_line($_)->{'content'};
-            $content_edit_link =  "<a href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
+            $content_edit_link =  "<a style='pointer-events: none; color: gray;' href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
             push(@all_content, $content_edit_link . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
           }
         } else {
           my $tmp_uuid8 = decode_txt_line($_)->{'uuid8'};
           my $content_edit_link = decode_txt_line($_)->{'content'};
-          $content_edit_link =  "<a href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
+          $content_edit_link =  "<a style='pointer-events: none; color: gray;' href='/line_content_modify/$user/$year/$month/$day/$tmp_uuid8'>" . $content_edit_link . '</a>';
           push(@all_content, $content_edit_link . ' : ' . decode_txt_line($_)->{'price'} . ' ' . decode_txt_line($_)->{'time'});
         }
       }
@@ -665,9 +693,6 @@ sub check_user_route_legal {
   my $user = shift;
   my $path = "$root_path/legal_name.txt";
   `mkdir $root_path; touch $path; echo user:ywang >> $path` unless -e $path;
-  `echo user:ywang01 >> $path` unless -e $path;
-  `echo user:ywang02 >> $path` unless -e $path;
-  `echo user:ywang03 >> $path` unless -e $path;
   my $content = `cat $path`;
   if ($content =~ m/user:$user\n/){
     return 1;
@@ -675,6 +700,32 @@ sub check_user_route_legal {
     return 0;
   }
 };
+
+#
+sub get_user_timeleft_str {
+  my $user = shift;
+  my $path = get_user_calendar_txt_path($user);
+  `touch $path; echo 2022-12-24 >> $path` unless -e $path;
+
+  my $goal = "2022-12-24";
+  my $local = localtime;
+
+  my $t = localtime; # until $t eq $goal
+  return "$goal;0;00;000;0000" if $t->ymd gt $goal;
+  while ($t->ymd lt $goal) {
+    $t += ONE_DAY;
+  }
+
+  # get diff from $t and $local
+  my $s = $t - $local;
+  my $days = $s->days;
+  my ($hh, $mm, $ss) = ($1, $2, $3) if $local->datetime =~ m/(\d{2}):(\d{2}):(\d{2})/;
+  $hh = $days * 24 + 24 - $hh - 1;
+  $mm = $hh * 60 + 60 - $mm - 1;
+  $ss = $mm * 60 + 60 - $ss;
+
+  return "$goal;$days;$hh;$mm;$ss";
+}
 
 # coding
 # design
@@ -932,6 +983,10 @@ get '/:user/:oper' => sub ($c) {
   } elsif ($oper eq 'adduser') {
     $c->render(template => 'adduser');
     return;
+  } elsif ($oper eq 'timeleft') {
+    my $timeleft_str = get_user_timeleft_str($user);
+    $c->render(text => $timeleft_str);
+    return;
   } else {
     $c->render(text => 'no oper');
     return;
@@ -1104,7 +1159,11 @@ get '/line_content_modify/:user/:y/:m/:d/:uuid8' => sub ($c) {
   my $d = $c->stash('d');
   my $uuid8 = $c->stash('uuid8');
 
-  $c->render(text => "$user,$y,$m,$d,$uuid8");
+  my $oc_line_ref = get_day_oc_txt_content_by_year_month_day_uuid8($user,$y,$m,$d,$uuid8);
+
+  $c->stash(oc_line_ref => $oc_line_ref);
+
+  $c->render(template => 'oc_line_modify');
 };
 
 app->start;
@@ -1114,6 +1173,44 @@ __DATA__
 % layout 'default';
 % title 'Welcome';
 <h1>Connact Admin and add your account.</h1>
+
+@@ oc_line_modify.html.ep
+% layout 'default';
+% title 'oc line modify';
+
+<p style="text-align: center;">danger oper, please input pwd legally</p>
+<p style="text-align: center;">
+  <a onclick="history.back()" style="color: blue;">go back</a>
+   | 
+  <a href="/<%= $c->stash('user') %>">back home</a>
+</p>
+
+% my $oc_line_ref = $c->stash('oc_line_ref');
+
+<form action="/oc_line_modify" method="post" style="position: absolute; font-size: 1.5em; text-align: center;">
+  <div style="display: none">
+    <input type="text" name="user" value="<%= $c->stash('user') %>">
+  </div>
+  <div style="display: none">
+    <input type="text" name="oper" value="<%= $c->stash('y') %>">
+  </div>
+  <div style="display: none">
+    <input type="text" name="oper" value="<%= $c->stash('m') %>">
+  </div>
+  <div style="display: none">
+    <input type="text" name="oper" value="<%= $c->stash('d') %>">
+  </div>
+  <div style="display: none">
+    <input type="text" name="oper" value="<%= $oc_line_ref->{'uuid8'} %>">
+  </div>
+  <div>
+    <label for="content"><%= $oc_line_ref->{'content'} %></label>
+    <input type="text" name="modify_content" value="<%= $oc_line_ref->{'content'} %>" style="width: calc(100% - 10px);">
+  </div>
+  <div style="float: right;">
+    <input type="submit" value="submit!">
+  </div>
+</form>
 
 @@ files_display.html.ep
 % layout 'default';
@@ -1533,6 +1630,46 @@ __DATA__
 % my $year = $c->stash('year');
 % my $month = $c->stash('month');
 % my $day = $c->stash('day');
+
+<p style="text-align: center; font-size: 0.9em;">
+  to <span id="timeleft_goal">xxxx-xx-xx</span> left: 
+  <span id="timeleft_day" style="color: #EED711;">x</span> d 
+  <span id="timeleft_hour" style="color: #3366FF;">xx</span> h 
+  <span id="timeleft_min" style="color: #44BFFC;">xxx</span> m 
+  <span id="timeleft_sec" style="color: #FFD711;">xxxx</span> s 
+</p>
+<script type='text/javascript'>
+  function get_timeleft() {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", '/<%= $user %>/timeleft', true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+        let data = xhr.responseText;
+        let timeleft_arrs = data.split(";");
+        document.getElementById('timeleft_goal').innerText = timeleft_arrs[0];
+        document.getElementById('timeleft_day').innerText = timeleft_arrs[1];
+        document.getElementById('timeleft_hour').innerText = timeleft_arrs[2];
+        document.getElementById('timeleft_min').innerText = timeleft_arrs[3];
+        document.getElementById('timeleft_sec').innerText = timeleft_arrs[4];
+      }
+    }
+    xhr.send();
+
+  }
+  window.onload = function() {
+    get_timeleft();
+    setInterval(function(){
+      get_timeleft();
+    }, 10*1000);
+
+    if (document.getElementById('timeleft_sec').innerText != 'xxxx' || document.getElementById('timeleft_sec').innerText != '0000'){
+      setInterval(function(){
+        document.getElementById('timeleft_sec').innerText = document.getElementById('timeleft_sec').innerText - 1;
+      }, 1000);
+    }
+  }
+</script>
 
 <p style="text-align: center; font-size: 1.5em;">
   <span style="font-weight: bold;">
