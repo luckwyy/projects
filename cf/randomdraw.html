@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-image: url(https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fpic1.win4000.com%2Fwallpaper%2F4%2F55b6e8c9940b5.jpg&refer=http%3A%2F%2Fpic1.win4000.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1674269678&t=7d1d7ac3a3957fa44272c4870b3cfa0b);
+            width: 100%;
+            height: 100%;
+        }
+        .div {
+            position: absolute; 
+            width: 98px; 
+            height: 98px; 
+            /* background-color: #40F7BD; */
+            /* border: #1BAB7D solid 1px; */
+        }
+        p{
+            margin: 0px;
+            padding: 0px;
+            line-height: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="position: relative; width: 400px; height: 100px; background-color: white; text-align: center; left: 50%; margin-left: -200px; background-color: transparent;">
+        <p>随机抽取机</p>
+    </div>
+    <div id="jiangpingbox" style="position: relative; width: 400px; height: 400px; background-color: white; text-align: center; left: 50%; margin-left: -200px; background-color: transparent;">
+
+        <button id="chou" style="position: absolute; width: 80px; height: 80px; left: 160px; top: 160px; background-color: #40bdf7;"
+        onclick="chou()">
+            <b>抽!</b>
+        </button>
+
+        <p style="position: absolute; left: 150px; top: 240px; width: 100px;">
+            剩余次数：<span id="opportunity">0</span>
+        </p>
+    </div>
+    <div style="position: relative; width: 400px; height: 100px; background-color: white; text-align: center; line-height: 50px; left: 50%; margin-left: -200px; background-color: transparent;">
+        <button id="chongzhi" style="position: absolute; width: 80px; height: 40px; left: 110px; top: 40px; background-color: #db509d;"
+        onclick="chongzhi()">
+            <b>充值</b>
+        </button>
+
+        <button id="tuiqian" style="position: absolute; width: 80px; height: 40px; right: 110px; top: 40px; background-color: #8494eb;"
+        onclick="tuiqian()">
+            <b>退钱</b>
+        </button>
+    </div>
+
+    <div style="position: relative; width: 400px; height: 400px; background-color: white; text-align: center; left: 50%; margin-left: -200px; background-color: transparent;">
+        <p style="line-height: 30px;">抽奖历史:</p>
+        <b id="prize">
+            
+        </b>
+    </div>
+
+    <script type="text/javascript">
+        function shuffle(arr, arr2) { // for shuffle jp
+            var length = arr.length,
+                randomIndex,
+                temp;
+            while (length) {
+                randomIndex = Math.floor(Math.random() * (length--));
+                temp = arr[randomIndex];
+                arr[randomIndex] = arr[length];
+                arr[length] = temp
+                
+                temp = arr2[randomIndex];
+                arr2[randomIndex] = arr2[length];
+                arr2[length] = temp
+            }
+            return arr, arr2;
+        }
+        function addjp() {
+            let lts = ['0,0', '100,0', '200,0', '300,0', '300,100', '300,200', '300,300', '200,300', '100,300', '0,300', '0,200', '0,100'];
+            let jps = ['雷神-星空皮肤', '王者之戮', '新灵狐者', 'AWM-裁决', 'AA-12-雷霆', 'M4A1-死神', 'AK47-麒麟', 'M4A1-玫瑰精灵', '麒麟刺', '猫耳头盔', '羊驼玩偶', '疾爆烟雾弹'];
+            let imgs = [
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic1.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic2.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic3.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic4.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic5.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic6.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic7.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic8.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic9.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic10.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic11.png',
+                            'https://game.gtimg.cn/images/actdaoju/cp/a20221207th/prop_pic12.png'
+                       ];
+            jps, imgs = shuffle(jps, imgs);
+            let box = document.getElementById('jiangpingbox');
+            for(let i = 1; i< 13; i++) {
+                let lts_is = lts[i-1].split(',');
+
+                let div = document.createElement('div');
+                let p_text = document.createTextNode(jps[i-1]);
+                let p = document.createElement('p');
+                p.style = "margin-top: 30px; font-size: 0.8em;";
+                p.appendChild(p_text);
+                div.appendChild(p);
+                box.appendChild(div);
+
+                div.id = "div-" + i;
+                div.classList.add('div');
+                div.style = "left: " + lts_is[0] + "px; top: " + lts_is[1] + "px;" + 
+                "background-image: url("+ imgs[i-1] +");" + "background-size: 98px 98px;";
+            }
+        }
+        addjp(); // load box
+        // window.onload = function() {
+            let prizes = [];
+            function chongzhi() {
+                let opportunity = parseInt(document.getElementById('opportunity').innerText);
+                if(opportunity >= 8) {
+                    alert('小抽怡情，大抽伤身');
+                } else {
+                    document.getElementById('opportunity').innerText = opportunity + 1;
+                }
+            }
+            function tuiqian() {
+                alert('退不了');
+            }
+            function chou() {
+                let opportunity = parseInt(document.getElementById('opportunity').innerText);
+                if(parseInt(opportunity) > 0) {
+                    document.getElementById('opportunity').innerText = opportunity - 1;
+                    chou_util();
+                } else {
+                    document.getElementById('opportunity').innerText = 0;
+                    alert('请充值');
+                }
+            }
+
+            function chou_util() {
+
+                let begin = 1;
+                let rand_end = parseInt(Math.random() * 12 + 1); // random 1-12
+                // console.log(rand_end);
+                prizes.push('时间 ' + get_time() + ' 奖品 ' + document.getElementById('div-'+rand_end).innerText);
+
+                let cir_number = parseInt(Math.random() * 2 + 7); // circulation number
+
+                let total_sleep = 0;
+                let count = 1;
+
+                let commands = [];
+
+                for (let idx = cir_number; idx < 12; idx++) {
+                    for (let i = 1; i < 13; i++) {
+                        total_sleep = count * 5;
+                        if(idx == 11 && i == rand_end + 1) {
+                            break;
+                        }
+                        let sleep_ms = total_sleep;
+                        let orange_op = i;
+                        let beige_op = '';
+                        if(i != 1) {
+                            beige_op = i-1;
+                        } else {
+                            beige_op = 12;
+                        }
+                        
+                        let s = sleep_ms +','+orange_op+','+beige_op;
+                        commands.push(s);
+                        count += 1;
+                    }
+                }
+
+                function sleep(time) {
+                    return new Promise((resolve) => setTimeout(resolve, time));
+                }
+
+                async function run(){
+                    for (let i = 1; i< 13; i++) {
+                        // document.getElementById('div-' + i).style.backgroundColor = '#40F7BD';
+                        document.getElementById('div-' + i).childNodes[0].style.color = 'black';
+                    }
+
+                    document.getElementById('chou').disabled = true;
+                    document.getElementById('chongzhi').disabled = true;
+                    document.getElementById('tuiqian').disabled = true;
+                    for (let i = 0; i< commands.length; i++) {
+                        let n = commands[i].split(',');
+                        await sleep(n[0]);
+                        if (i == commands.length - 1) {
+                            // document.getElementById('div-' + n[1]).style.backgroundColor = '#F7BE28';
+                            document.getElementById('div-' + n[1]).childNodes[0].style.color = 'red';
+                        } else {
+                            // document.getElementById('div-' + n[1]).style.backgroundColor = '#1BAB7D';
+                            document.getElementById('div-' + n[1]).childNodes[0].style.color = '#F7BE28';
+                        }
+                        // document.getElementById('div-' + n[2]).style.backgroundColor = '#40F7BD';
+                        document.getElementById('div-' + n[2]).childNodes[0].style.color = 'black';
+                    }
+
+                    document.getElementById('chou').disabled = false;
+                    document.getElementById('chongzhi').disabled = false;
+                    document.getElementById('tuiqian').disabled = false;
+
+                    document.getElementById('prize').innerText = prizes.join('\n');
+
+                }
+                
+                run();
+            }
+
+            function get_time() {
+                let dt =new Date();
+                let h = dt.getHours();
+                let m = dt.getMinutes();
+                let s = dt.getSeconds();
+                if (s < 10) {
+                    s = '0'+s;
+                }
+                if (m < 10) {
+                    m = '0'+m;
+                }
+                return h+':'+m+':'+s;
+            }
+        // }
+    </script>
+</body>
+
+</html>
