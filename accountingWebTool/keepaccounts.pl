@@ -684,7 +684,23 @@ sub replace_name {
   $n =~ s/ /SPA/g;
   $n =~ s/\:/COL/g;
   $n =~ s/\./DOT/g;
-  $n =~ s/[ \:\.\,\-\_\[\]\+\=\#\*\$\%\^\\\/\!\`\'\"\;\?\>\<\|]/CHR/g;
+  $n =~ s/\\/SST/g; # shilling-stroke;
+  $n =~ s/\//AST/g; # Anticlinal stroke
+  $n =~ s/\[/LBR/g; # brackets
+  $n =~ s/\]/RBR/g;
+  $n =~ s/\_/UND/g; # underline
+  $n =~ s/\~/WAV/g; # wave
+  $n =~ s/\`/TIC/g; # tick
+  $n =~ s/\*/STA/g; # Star
+  $n =~ s/\$/DOL/g; # dollar 
+  $n =~ s/\!/EMA/g; # exclamation mark 
+  $n =~ s/\'/SQM/g; # single quotation marks
+  $n =~ s/\"/DQM/g; # double quotation marks 
+  $n =~ s/\</LAB/g; # angle brackets
+  $n =~ s/\>/RAB/g; # angle brackets
+  $n =~ s/\|/PIP/g; # pipe operator;
+  $n =~ s/\;/SEM/g; # semicolon
+  $n =~ s/[\,\-\+\=\#\%\^\?]/CHR/g;
   return $n;
 };
 
@@ -704,27 +720,47 @@ sub check_user_route_legal {
 #
 sub get_user_timeleft_str {
   my $user = shift;
-  my $path = get_user_calendar_txt_path($user);
-  `touch $path; echo 2022-12-24 >> $path` unless -e $path;
 
-  my $goal = "2022-12-24";
+  my $path = get_user_calendar_txt_path($user);
+  `touch $path` unless -e $path;
+  my $content = `cat $path`;
+  chomp $content;
+  `echo 2022-12-23 > $path` if $content !~ m/\d{4}-/;
+
+  my $goal = $content;
   my $local = localtime;
 
   my $t = localtime; # until $t eq $goal
-  return "$goal;0;00;000;0000" if $t->ymd gt $goal;
-  while ($t->ymd lt $goal) {
-    $t += ONE_DAY;
+  if ($t->ymd ge $goal) {
+    while ($t->ymd ge $goal) {
+      $t -= ONE_DAY;
+    }
+
+    # get diff from $t and $local
+    my $s = $local - $t;
+    my $days = $s->days - 1;
+    my ($hh, $mm, $ss) = ($1, $2, $3) if $local->datetime =~ m/(\d{2}):(\d{2}):(\d{2})/;
+    $hh = $days * 24 + $hh;
+    $mm = $hh * 60 + $mm;
+    $ss = $mm * 60 + $ss;
+
+    return "past;$goal;$days;$hh;$mm;$ss";
+
+  } else {
+    while ($t->ymd lt $goal) {
+      $t += ONE_DAY;
+    }
+
+    # get diff from $t and $local
+    my $s = $t - $local;
+    my $days = $s->days - 1;
+    my ($hh, $mm, $ss) = ($1, $2, $3) if $local->datetime =~ m/(\d{2}):(\d{2}):(\d{2})/;
+    $hh = $days * 24 + 24 - $hh - 1;
+    $mm = $hh * 60 + 60 - $mm - 1;
+    $ss = $mm * 60 + 60 - $ss;
+
+    return "remain;$goal;$days;$hh;$mm;$ss";
   }
-
-  # get diff from $t and $local
-  my $s = $t - $local;
-  my $days = $s->days;
-  my ($hh, $mm, $ss) = ($1, $2, $3) if $local->datetime =~ m/(\d{2}):(\d{2}):(\d{2})/;
-  $hh = $days * 24 + 24 - $hh - 1;
-  $mm = $hh * 60 + 60 - $mm - 1;
-  $ss = $mm * 60 + 60 - $ss;
-
-  return "$goal;$days;$hh;$mm;$ss";
 }
 
 # coding
@@ -768,6 +804,7 @@ post '/upload_file' => sub ($c) {
   my $user = $c->param('user');
   my $uuid8 = $c->param('uuid8');
   my $content_as_file_name = $c->param('content_as_file_name');
+  # $content_as_file_name =~ s///;
   # my $record_str_origin = $c->param('record_str');
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
@@ -891,6 +928,7 @@ post '/:user/get_date_statistic' => sub ($c) {
   $msg .= '<br> ic details: <br>';
   $msg .= add_str_start_end_b_tag( '<br> all oc: ' ) . $oc_all_by_start_end_day . '<br>';
   $msg .= '<br> avg oc: <br>';
+  $msg .= 'zhangweizhangwei';
   $msg .= '<br> day avg oc: <br>';
   $msg .= '<br> ic - oc = : <br>';
   $msg .= add_str_start_end_b_tag( '<br> days detail: <br>' );
@@ -944,8 +982,12 @@ post '/:user/get_date_statistic' => sub ($c) {
   $avg_oc = 0;
   $avg_oc = sprintf("%.3f", $oc_all_by_start_end_day / $avg_days_count) if $avg_days_count != 0;
   $msg =~ s/<br> day avg oc: <br>/<br> <b>all days:<\/b> $avg_days_count , <b>avg oc:<\/b> $avg_oc<br>/g;
-  my $diff = $ic_all_between_days - $oc_all_by_start_end_day;
-  $msg =~ s/<br> ic - oc = : <br>/<br> <b>ic - oc:<\/b> $ic_all_between_days - $oc_all_by_start_end_day = $diff <br>/g;
+  my $diff = $oc_all_by_start_end_day - $ic_all_between_days;
+  $msg =~ s/<br> ic - oc = : <br>/<br> <b>ic - oc:<\/b> $oc_all_by_start_end_day - $ic_all_between_days = $diff <br>/g;
+  my $avg_oc_without_ic = 0;
+  $avg_oc_without_ic = sprintf("%.3f", $diff / $avg_days_count) if $avg_days_count != 0;
+  $msg =~ s/zhangweizhangwei/<br> <b>avg oc (without ic):<\/b> $avg_oc_without_ic <br>/g;
+
 
   $c->stash(datestart => $datestart);
   $c->stash(dateend => $dateend);
@@ -1164,6 +1206,16 @@ get '/line_content_modify/:user/:y/:m/:d/:uuid8' => sub ($c) {
   $c->stash(oc_line_ref => $oc_line_ref);
 
   $c->render(template => 'oc_line_modify');
+};
+
+get '/:user/timeleft/set/:date' => sub ($c) {
+  my $user = $c->stash('user');
+  my $date = $c->stash('date');
+
+  my $path = get_user_calendar_txt_path($user);
+  `echo $date > $path`;
+
+  $c->render(text => '1');
 };
 
 app->start;
@@ -1631,14 +1683,20 @@ __DATA__
 % my $month = $c->stash('month');
 % my $day = $c->stash('day');
 
-<p style="text-align: center; font-size: 0.9em;">
-  to <span id="timeleft_goal">xxxx-xx-xx</span> left: 
-  <span id="timeleft_day" style="color: #EED711;">x</span> d 
-  <span id="timeleft_hour" style="color: #3366FF;">xx</span> h 
-  <span id="timeleft_min" style="color: #44BFFC;">xxx</span> m 
-  <span id="timeleft_sec" style="color: #FFD711;">xxxx</span> s 
+<p style="text-align: center; font-size: 0.8em;">
+  <button type="button" style="margin: 0px; padding:0px; border: 0px; background-color: white;" onclick="change_goal_time(document.getElementById('timeleft_goal').value)">
+    to
+  </button>
+  <input type="date" id="timeleft_goal" value="2022-12-23"/>
+  <span id="timeleft_status">x</span>
+  : 
+  <span id="timeleft_day" style="color: #EED711;">0</span> d 
+  <span id="timeleft_hour" style="color: #3366FF;">0</span> h 
+  <span id="timeleft_min" style="color: #44BFFC;">0</span> m 
+  <span id="timeleft_sec" style="color: #FFD711;">0</span> s 
 </p>
 <script type='text/javascript'>
+  var status = '';
   function get_timeleft() {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", '/<%= $user %>/timeleft', true);
@@ -1646,28 +1704,50 @@ __DATA__
     xhr.onreadystatechange = () => {
       if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
         let data = xhr.responseText;
-        let timeleft_arrs = data.split(";");
-        document.getElementById('timeleft_goal').innerText = timeleft_arrs[0];
-        document.getElementById('timeleft_day').innerText = timeleft_arrs[1];
-        document.getElementById('timeleft_hour').innerText = timeleft_arrs[2];
-        document.getElementById('timeleft_min').innerText = timeleft_arrs[3];
-        document.getElementById('timeleft_sec').innerText = timeleft_arrs[4];
+        if (data != "0") {
+          let timeleft_arrs = data.split(";");
+          status = timeleft_arrs[0];
+          document.getElementById('timeleft_status').innerText = timeleft_arrs[0];
+          document.getElementById('timeleft_goal').value = timeleft_arrs[1];
+          document.getElementById('timeleft_day').innerText = timeleft_arrs[2];
+          document.getElementById('timeleft_hour').innerText = timeleft_arrs[3];
+          document.getElementById('timeleft_min').innerText = timeleft_arrs[4];
+          document.getElementById('timeleft_sec').innerText = timeleft_arrs[5];
+        }
       }
     }
     xhr.send();
 
   }
+
   window.onload = function() {
     get_timeleft();
     setInterval(function(){
       get_timeleft();
     }, 10*1000);
 
-    if (document.getElementById('timeleft_sec').innerText != 'xxxx' || document.getElementById('timeleft_sec').innerText != '0000'){
-      setInterval(function(){
-        document.getElementById('timeleft_sec').innerText = document.getElementById('timeleft_sec').innerText - 1;
-      }, 1000);
+    setInterval(function(){
+      if (document.getElementById('timeleft_sec').innerText != '0'){
+        if(status == 'remain'){
+          document.getElementById('timeleft_sec').innerText = document.getElementById('timeleft_sec').innerText - 1;
+        }
+        if(status == 'past'){
+          document.getElementById('timeleft_sec').innerText = parseInt(document.getElementById('timeleft_sec').innerText) + 1;
+        }
+      }
+    }, 1000);
+  }
+
+  function change_goal_time(date) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", '/<%= $user %>/timeleft/set/'+date, true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+        location.reload();
+      }
     }
+    xhr.send();
   }
 </script>
 
@@ -1722,7 +1802,7 @@ __DATA__
 </div>
 
 
-<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 100px;">
+<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 130px;">
   <form action="/set_oc" method="post" style="font-size: 1.5em;">
     <div style="display: none">
       <input type="text" name="user" value="<%= $c->stash('user') %>">
@@ -1732,11 +1812,24 @@ __DATA__
       <input type="text" name="ocname" id="ocname" required style="width: calc(100% - 110px);">
     </div>
     <div>
+    <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '早饭'">早饭</span>
+    <span style="font-size: 0.8em; color: gray;">|</span>
+    <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '午饭'">午饭</span>
+    <span style="font-size: 0.8em; color: gray;">|</span>
+    <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '晚饭'">晚饭</span>
+    <span style="font-size: 0.8em; color: gray;">|</span>
+    <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '零食饮料'">零食饮料</span>
+    <span style="font-size: 0.8em; color: gray;">|</span>
+    <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '永辉'">永辉</span>
+    <span style="font-size: 0.8em; color: gray;">|</span>
+    <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '水果'">水果</span>
+    </div>
+    <div>
       <label for="oc" style="width: 100px;">Enter oc: </label>
       <input type="text" name="oc" id="oc" required style="width: calc(100% - 110px);">
     </div>
     <div style="float: right;">
-      <input type="submit" value="submit oc!">
+      <input type="submit" value="submit oc1!">
     </div>
   </form>
   <script type="text/javascript">
