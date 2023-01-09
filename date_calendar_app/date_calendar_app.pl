@@ -80,6 +80,19 @@ sub calc_tgdz {
     };
 };
 
+# calculate 
+sub calc_secs_from_now_to_goal {
+  my $date = shift;
+
+  my $now_utc_secs = `date +%s`;
+  chomp $now_utc_secs;
+  
+  my $date_utc_secs = `date -d "$date" +%s`;
+  chomp $date_utc_secs;
+
+  return $date_utc_secs - $now_utc_secs;
+};
+
 # input format: 2022-12-11 2022-12-12
 sub calc_main {
   my $fir = shift;
@@ -166,6 +179,8 @@ post '/api/calc_date' => sub ($c) {
 
   my $today_relative = calc_today_relative($fir_date);
 
+  my $to_goal_utc_secs = calc_secs_from_now_to_goal($sec_date);
+
   $c->flash(fir_date => $fir_date);
   $c->flash(fir_date_info_hash => $fir_date_info_hash);
   $c->flash(sec_date => $sec_date);
@@ -174,6 +189,7 @@ post '/api/calc_date' => sub ($c) {
   $c->flash(msg => $msg);
   $c->flash(main_info => $main_info);
   $c->flash(today_relative => $today_relative);
+  $c->flash(to_goal_utc_secs => $to_goal_utc_secs);
 
   $c->redirect_to('date');
 };
@@ -244,6 +260,7 @@ __DATA__
 % my $single_date_flag = $c->flash('single_date_flag');
 % my $main_info = $c->flash('main_info');
 % my $today_relative = $c->flash('today_relative');
+% my $to_goal_utc_secs = $c->flash('to_goal_utc_secs');
 
 <div style="position: relative; width: 100%; height: 300px; border: 1px solid gray; border-radius: 5px;">
   <form action="/api/calc_date" method="post">
@@ -303,6 +320,23 @@ __DATA__
     </p>
     <hr>
     <p style="text-align: center;">
+      <span>距<%= $sec_date %> 0时<span id="utc_count_flag"></span></span>
+      <br>
+      <b style="font-size: 3rem;" id="utc_count_day">
+      10
+      </b>天
+      <span style="font-size: 3rem;" id="utc_count_hh">
+      10
+      </span>小时
+      <span style="font-size: 3rem;" id="utc_count_mm">
+      10
+      </span>分钟
+      <span style="font-size: 3rem;" id="utc_count_ss">
+      10
+      </span>秒
+    </p>
+    <hr>
+    <p style="text-align: center;">
     <%= $fir_date %>是<span id="fir_date_lunal"></span>
     <br>
     是<%= $fir_date_info_hash->{fir_y} %>年第<%= $main_info->{'fir_week_idx_inyear'} %>周，周<%= $main_info->{'fir_day_idx_inweek'} %>，本年第<%= $main_info->{'fir_day_idx_inyear'} %>天（周一为起始计）
@@ -330,6 +364,37 @@ __DATA__
 <script src="./jquery-3.6.3.min.js"></script>
 <script src="./lunarFun.js"></script>
 <script type="text/javascript">
+
+  $(document).ready(function() {
+    % if (defined $single_date_flag and !$single_date_flag) {
+        let secs = '<%= $to_goal_utc_secs %>';
+        setInterval(function(){
+          secs -= 1;
+          let day = parseInt(secs / (24*60*60));
+          let hh = parseInt((secs - day * 24*60*60) / (60*60));
+          let mm = parseInt((secs - day * 24*60*60 - hh*60*60) / (60));
+          let ss = parseInt((secs - day * 24*60*60 - hh*60*60 - mm*60));
+
+          if (secs < 0) {
+            $('#utc_count_flag')[0].innerText = '已过';
+            $('#utc_count_day')[0].innerText = Math.abs(day);
+            $('#utc_count_hh')[0].innerText = Math.abs(hh);
+            $('#utc_count_mm')[0].innerText = Math.abs(mm);
+            $('#utc_count_ss')[0].innerText = Math.abs(ss);
+            document.getElementById('utc_count_day').style = "font-size: 3rem; color: green;";
+            document.getElementById('utc_count_hh').style = "font-size: 3rem; color: green;";
+            document.getElementById('utc_count_mm').style = "font-size: 3rem; color: green;";
+            document.getElementById('utc_count_ss').style = "font-size: 3rem; color: green;";
+          } else {
+            $('#utc_count_flag')[0].innerText = '还有';
+            $('#utc_count_day')[0].innerText = day;
+            $('#utc_count_hh')[0].innerText = hh;
+            $('#utc_count_mm')[0].innerText = mm;
+            $('#utc_count_ss')[0].innerText = ss;
+          }
+        }, 1000);
+    % }
+  });
 
   $(document).ready(function() {
     if (document.getElementById('sec_date').value == '') {
