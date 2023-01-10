@@ -141,6 +141,10 @@ get '/date' => sub ($c) {
   $c->render(template => 'date');
 };
 
+get '/count' => sub ($c) {
+  $c->render(template => 'count');
+};
+
 post '/api/calc_date' => sub ($c) {
   my $fir_date = $c->param('fir_date');
   my $sec_date = $c->param('sec_date');
@@ -247,6 +251,156 @@ __DATA__
 % title 'Welcome';
 <h1 style="font-size: 2rem; height: 4rem;">Welcome to the Mojolicious real-time web framework1!</h1>
 
+@@ count.html.ep
+% layout 'default';
+% title 'count';
+
+<div style="position: relative; width: 100%; height: 300px; border: 1px solid gray; border-radius: 5px;">
+  <form action="#" method="post">
+    <div style="margin-bottom: 32px;">
+      <label for="datetime" style="font-size: 2rem;">datetime: </label>
+      <input type="datetime-local" name="datetime" id="datetime" style="position: absolute; right: 0px; font-size: 2rem;" onchange="setDateTimeCount(this.value)">
+    </div>
+    <div style="margin-bottom: 32px;">
+      <label for="time" style="font-size: 2rem;">time: </label>
+      <input type="time" name="time" id="time" style="position: absolute; right: 0px; font-size: 2rem;" onchange="setTimeCount(this.value)">
+    </div>
+    <!--div class="div_mt_20 div_mb_20" style="position: absolute; right: 0px;">
+      <input id="submit" type="submit" value="submit!" style="font-size: 2rem;">
+    </div-->
+  </form>
+</div>
+<hr>
+<hr>
+<hr>
+<hr>
+<hr>
+<div style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 5px; font-size: 2rem;">
+  <p style="text-align: center;">
+    <span id="utc_count_msg1"></span><span id="utc_count_msg2"></span>
+    <br>
+    <span id="utc_count_msg3"></span>
+    <br>
+    <span id="utc_count_msg4"></span>
+    <br>
+    <br>
+    <span style="font-size: 4.5rem;" id="utc_count_day">
+    -
+    </span><span style="color: LightGray;">天</span><br>
+    <span style="font-size: 4.5rem;" id="utc_count_hh">
+    -
+    </span><span style="color: LightGray;">时</span><br>
+    <span style="font-size: 4.5rem;" id="utc_count_mm">
+    -
+    </span><span style="color: LightGray;">分</span><br>
+    <b style="font-size: 7.5rem;" id="utc_count_ss">
+    -
+    </b>秒
+  </p>
+</div>
+
+<div style="position: fixed; bottom: 0px; right: 0px; font-size: 2rem;">
+  <a>@112.124.14.71</a> <br>
+  <a href="/date">to /date</a> | 
+  <a href="/count">to /count</a> <br>
+  <a href="http://112.124.14.71:3003">to /cf</a> | 
+  <a href="http://112.124.14.71:3000">to /room</a>
+</div>
+
+<script src="./jquery-3.6.3.min.js"></script>
+<script>
+  $(document).ready(function () {
+    document.getElementById('datetime').value = '2023-01-01 00:00';
+    document.getElementById('time').value="01:00";
+  });
+
+  var interval;
+
+  function setDateTimeCount(val) {
+    let now_utc_secs = parseInt(new Date().getTime() * 1e-3);
+    let val_utc_secs = parseInt(new Date(val).getTime() * 1e-3);
+
+    let secs = val_utc_secs - now_utc_secs;
+    let msg2 = "已过";
+    if (secs > 0) {
+      msg2 = "还有";
+    }
+
+    $('#utc_count_msg1').text("距离"+val);
+    $('#utc_count_msg2').text(","+msg2);
+    $('#utc_count_msg3').text("计算时间 "+new Date().toLocaleString());
+
+    if (interval != null) {
+      clearInterval(interval);
+    }
+    interval = setInterval(function(){
+      secs -= 1;
+      if (secs != -1) {
+        let day = parseInt(secs / (24*60*60));
+        let hh = parseInt((secs - day * 24*60*60) / (60*60));
+        let mm = parseInt((secs - day * 24*60*60 - hh*60*60) / (60));
+        let ss = parseInt((secs - day * 24*60*60 - hh*60*60 - mm*60));
+        $('#utc_count_day').text(setPrevZero(day));
+        $('#utc_count_hh').text(setPrevZero(hh));
+        $('#utc_count_mm').text(setPrevZero(mm));
+        $('#utc_count_ss').text(setPrevZero(ss));
+      } else {
+        clearInterval(interval);
+        $('#utc_count_msg2').text("已结束");
+        $('#utc_count_msg4').text("结束时间 "+new Date().toLocaleString());
+      }
+    }, 1000);
+  }
+
+  function setTimeCount(val) {
+    let vals = val.split(":");
+    let hh = vals[0];
+    let mm = vals[1];
+    $('#utc_count_msg1').text("");
+    $('#utc_count_msg2').text("");
+    $('#utc_count_msg3').text("");
+    $('#utc_count_msg4').text("");
+    if (hh == 0 && mm == 0) {
+      $('#utc_count_msg1').text("!0");
+    } else {
+      $('#utc_count_msg1').text("倒计时"+ hh +"小时"+ mm +"分钟");
+      $('#utc_count_msg2').text(",还有");
+      $('#utc_count_msg3').text("开始时间 "+new Date().toLocaleTimeString());
+      let secs = hh*60*60 + mm*60;
+      if (interval != null) {
+        clearInterval(interval);
+      }
+      interval = setInterval(function(){
+        secs -= 1;
+        if (secs != -1) {
+          let day = parseInt(secs / (24*60*60));
+          let hh = parseInt((secs - day * 24*60*60) / (60*60));
+          let mm = parseInt((secs - day * 24*60*60 - hh*60*60) / (60));
+          let ss = parseInt((secs - day * 24*60*60 - hh*60*60 - mm*60));
+          $('#utc_count_day').text(setPrevZero(day));
+          $('#utc_count_hh').text(setPrevZero(hh));
+          $('#utc_count_mm').text(setPrevZero(mm));
+          $('#utc_count_ss').text(setPrevZero(ss));
+        } else {
+          clearInterval(interval);
+          $('#utc_count_msg2').text("已结束");
+          $('#utc_count_msg4').text("结束时间 "+new Date().toLocaleTimeString());
+        }
+      }, 1000);
+    }
+  }
+
+  function setPrevZero(val) {
+    val = Math.abs(val);
+    if(val < 10) {
+      return '0'+val;
+    }
+    return val;
+  }
+</script>
+
+
+
 @@ date.html.ep
 % layout 'default';
 % title 'calc date';
@@ -265,11 +419,11 @@ __DATA__
 <div style="position: relative; width: 100%; height: 300px; border: 1px solid gray; border-radius: 5px;">
   <form action="/api/calc_date" method="post">
     <div style="margin-bottom: 32px;">
-      <label for="name" style="font-size: 2rem;">First date: </label>
+      <label for="fir_date" style="font-size: 2rem;">First date: </label>
       <input type="date" name="fir_date" id="fir_date" style="position: absolute; right: 0px; font-size: 2rem;" value="<%= $fir_date %>" required>
     </div>
     <div style="margin-bottom: 32px;">
-      <label for="name" style="font-size: 2rem;">Second date: </label>
+      <label for="sec_date" style="font-size: 2rem;">Second date: </label>
       <input type="date" name="sec_date" id="sec_date" style="position: absolute; right: 0px; font-size: 2rem;" value="<%= $sec_date %>">
     </div>
     <div class="div_mt_20 div_mb_20" style="position: absolute; right: 0px;">
@@ -360,6 +514,15 @@ __DATA__
   % }
   </div>
 % }
+
+
+<div style="position: fixed; bottom: 0px; right: 0px; font-size: 2rem;">
+  <a>@112.124.14.71</a> <br>
+  <a href="/date">to /date</a> | 
+  <a href="/count">to /count</a> <br>
+  <a href="http://112.124.14.71:3003">to /cf</a> | 
+  <a href="http://112.124.14.71:3000">to /room</a>
+</div>
 
 <script src="./jquery-3.6.3.min.js"></script>
 <script src="./lunarFun.js"></script>
@@ -480,6 +643,7 @@ __DATA__
     font-size: 24px;
     width: 100%;
     height: 100%;
+    /*link 862024320@qq.com*/
   }
 
   .div_mt_20 {
