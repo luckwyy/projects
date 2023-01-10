@@ -311,7 +311,7 @@ __DATA__
 <script>
   $(document).ready(function () {
     document.getElementById('datetime').value = '2023-01-01 00:00';
-    document.getElementById('time').value="01:00";
+    document.getElementById('time').value="01:05";
   });
 
   var interval;
@@ -322,8 +322,10 @@ __DATA__
 
     let secs = val_utc_secs - now_utc_secs;
     let msg2 = "已过";
+    $('#utc_count_msg2').css('color', 'green');
     if (secs > 0) {
       msg2 = "还有";
+      $('#utc_count_msg2').css('color', 'black');
     }
 
     $('#utc_count_msg1').text("距离"+val);
@@ -360,6 +362,8 @@ __DATA__
     $('#utc_count_msg2').text("");
     $('#utc_count_msg3').text("");
     $('#utc_count_msg4').text("");
+    $('#utc_count_msg2').css('color', 'black');
+    
     if (hh == 0 && mm == 0) {
       $('#utc_count_msg1').text("!0");
     } else {
