@@ -259,11 +259,17 @@ __DATA__
   <form action="#" method="post">
     <div style="margin-bottom: 32px;">
       <label for="datetime" style="font-size: 2rem;">datetime: </label>
-      <input type="datetime-local" name="datetime" id="datetime" style="position: absolute; right: 0px; font-size: 2rem;" onchange="setDateTimeCount(this.value)">
+      <input type="datetime-local" name="datetime" id="datetime" style="position: absolute; right: 0px; font-size: 2rem; width: 500px;" onchange="setDateTimeCount(this.value)">
     </div>
+    <hr style="width: 500px;">
     <div style="margin-bottom: 32px;">
       <label for="time" style="font-size: 2rem;">time: </label>
-      <input type="time" name="time" id="time" style="position: absolute; right: 0px; font-size: 2rem;" onchange="setTimeCount(this.value)">
+      <input type="time" name="time" id="time" style="position: absolute; right: 0px; font-size: 2rem; width: 500px;" onchange="setTimeCount(this.value)">
+    </div>
+    <hr style="width: 500px;">
+    <div style="margin-bottom: 32px;">
+      <label for="action" style="font-size: 2rem;">second chronograph: </label>
+      <button type="button" id="action" style="position: absolute; right: 0px; font-size: 2rem; width: 500px;" onclick="setChronograph()">action!</button>
     </div>
     <!--div class="div_mt_20 div_mb_20" style="position: absolute; right: 0px;">
       <input id="submit" type="submit" value="submit!" style="font-size: 2rem;">
@@ -273,10 +279,8 @@ __DATA__
 <hr>
 <hr>
 <hr>
-<hr>
-<hr>
 <div style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 5px; font-size: 2rem;">
-  <p style="text-align: center;">
+  <p style="text-align: center;" onclick="recordTime()">
     <span id="utc_count_msg1"></span><span id="utc_count_msg2"></span>
     <br>
     <span id="utc_count_msg3"></span>
@@ -295,9 +299,13 @@ __DATA__
     </span><span style="color: LightGray;">分</span><br>
     <b style="font-size: 7.5rem;" id="utc_count_ss">
     -
-    </b>秒
+    </b>秒<span id="utc_count_ms" style="color: black; font-size: 1.5rem;">ms</span>
+  </p>
+  <hr>
+  <p style="text-align: center; font-size: 1.5rem;" id="time_record">
   </p>
 </div>
+
 
 <div style="position: fixed; bottom: 0px; right: 0px; font-size: 2rem;">
   <a>@112.124.14.71</a> <br>
@@ -315,8 +323,49 @@ __DATA__
   });
 
   var interval;
+  var secs_ms = 0;
+  
+  function recordTime() {
+    let idx = $("#time_record").children().length;
+    if (idx / 2 > 9) {
+      $("#time_record").empty();
+    }
+    idx = $("#time_record").children().length;
+    let b = $("<b style='color: blue; background-color: LightYellow;'></b>").text( (idx / 2 + 1) + ' : ' + 
+    new Date().toLocaleString() + ' ' + (secs_ms*1e-3).toFixed(3) );
+    let br = $("<br>")
+    $('#time_record').prepend(b, br);
+  }
+  
+  function setChronograph() {
+    clearRunCache();
+    $('#action').text('reset!');
+    $('#utc_count_ms').show();
+    $('#utc_count_msg3').text("开始时间 "+new Date().toLocaleString());
+    
+    let now_utc_secs_ms = new Date().getTime();
+    interval = setInterval(function(){
+      let val_utc_secs_ms = new Date().getTime();
+      secs_ms = val_utc_secs_ms - now_utc_secs_ms;
+      if (secs_ms > 999) {
+        let day = parseInt(secs_ms / (24*60*60*1000));
+        let hh = parseInt((secs_ms - day * 24*60*60*1000) / (60*60*1000));
+        let mm = parseInt((secs_ms - day * 24*60*60*1000 - hh*60*60*1000) / (60*1000));
+        let ss = parseInt((secs_ms - day * 24*60*60*1000 - hh*60*60*1000 - mm*60*1000) / 1000);
+        let ms = parseInt((secs_ms - day * 24*60*60*1000 - hh*60*60*1000 - mm*60*1000 - ss*1000));
+        $('#utc_count_day').text(setPrevZero(day));
+        $('#utc_count_hh').text(setPrevZero(hh));
+        $('#utc_count_mm').text(setPrevZero(mm));
+        $('#utc_count_ss').text(setPrevZero(ss));
+        $('#utc_count_ms').text(setPrevZero2(ms) + 'ms');
+      } else {
+        $('#utc_count_ms').text(setPrevZero2(secs_ms) + 'ms');
+      }
+    }, 1);
+  }
 
   function setDateTimeCount(val) {
+    clearRunCache();
     let now_utc_secs = parseInt(new Date().getTime() * 1e-3);
     let val_utc_secs = parseInt(new Date(val).getTime() * 1e-3);
 
@@ -332,9 +381,7 @@ __DATA__
     $('#utc_count_msg2').text(","+msg2);
     $('#utc_count_msg3').text("计算时间 "+new Date().toLocaleString());
 
-    if (interval != null) {
-      clearInterval(interval);
-    }
+    
     interval = setInterval(function(){
       secs -= 1;
       if (secs != -1) {
@@ -355,15 +402,12 @@ __DATA__
   }
 
   function setTimeCount(val) {
+    clearRunCache();
     let vals = val.split(":");
     let hh = vals[0];
     let mm = vals[1];
-    $('#utc_count_msg1').text("");
-    $('#utc_count_msg2').text("");
-    $('#utc_count_msg3').text("");
-    $('#utc_count_msg4').text("");
     $('#utc_count_msg2').css('color', 'black');
-    
+
     if (hh == 0 && mm == 0) {
       $('#utc_count_msg1').text("!0");
     } else {
@@ -371,9 +415,7 @@ __DATA__
       $('#utc_count_msg2').text(",还有");
       $('#utc_count_msg3').text("开始时间 "+new Date().toLocaleTimeString());
       let secs = hh*60*60 + mm*60;
-      if (interval != null) {
-        clearInterval(interval);
-      }
+      
       interval = setInterval(function(){
         secs -= 1;
         if (secs != -1) {
@@ -394,9 +436,32 @@ __DATA__
     }
   }
 
+  function clearRunCache() {
+    $('#utc_count_ms').hide();
+    $('#action').text("action!");
+    $('#utc_count_msg1').text("");
+    $('#utc_count_msg2').text("");
+    $('#utc_count_msg3').text("");
+    $('#utc_count_msg4').text("");
+    if (interval != null) {
+      clearInterval(interval);
+    }
+    $("#time_record").empty();
+  }
+
   function setPrevZero(val) {
     val = Math.abs(val);
     if(val < 10) {
+      return '0'+val;
+    }
+    return val;
+  }
+
+  function setPrevZero2(val) {
+    val = Math.abs(val);
+    if(val < 10) {
+      return '00'+val;
+    } else if (val < 100) {
       return '0'+val;
     }
     return val;
