@@ -671,7 +671,7 @@ sub check_number {
 # check name
 sub check_name {
   my $n = shift;
-  if ($n =~ m/[\:\.\,\-\_\[\]\+\=\#\*\$\%\^\\\/\!\`\'\"\;\?\>\<\|]/ or $n =~ m/ /) {
+  if ($n =~ m/[\:\.\,\-\_\[\]\+\=\#\*\$\%\^\\\/\!\`\'\"\;\?\>\<\|]/ or $n =~ m/^(SPA)*$/) {
     return 0;
   } else {
     return 1;
@@ -769,8 +769,10 @@ sub get_user_timeleft_str {
 # by ywang 862024320@qq.com
 post '/set_ic' => sub ($c) {
   my $icname = $c->param('icname');
+  my $ic = 'legal';
+  ($icname, $ic) = ($1, $2) if $icname =~ m/(.*?)(\d+\.{0,1}\d*)$/;
   $icname = replace_name($icname);
-  my $ic = $c->param('ic');
+#   my $ic = $c->param('ic');
   my $user = $c->param('user');
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
@@ -784,8 +786,10 @@ post '/set_ic' => sub ($c) {
 
 post '/set_oc' => sub ($c) {
   my $ocname = $c->param('ocname');
+  my $oc = 'legal';
+  ($ocname, $oc) = ($1, $2) if $ocname =~ m/(.*?)(\d+\.{0,1}\d*)$/;
   $ocname = replace_name($ocname);
-  my $oc = $c->param('oc');
+#   my $oc = $c->param('oc');
   my $user = $c->param('user');
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
@@ -1776,7 +1780,7 @@ __DATA__
   % }
 </p>
 
-<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 100px;">
+<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 70px;">
   <!--fieldset>
     <legend>Title</legend>
   </fieldset-->
@@ -1785,13 +1789,13 @@ __DATA__
       <input type="text" name="user" value="<%= $c->stash('user') %>">
     </div>
     <div>
-      <label for="icname" style="width: 100px;">ic name: </label>
-      <input type="text" name="icname" id="icname" required style="width: calc(100% - 110px);">
+      <label for="icname" style="width: 100px;">ic : </label>
+      <input type="text" name="icname" id="icname" required style="width: calc(100% - 55px);">
     </div>
-    <div>
+    <!--div>
       <label for="ic" style="width: 100px;">Enter ic: </label>
       <input type="text" name="ic" id="ic" value="<%= $c->stash('ic') %>" required style="width: calc(100% - 110px);">
-    </div>
+    </div-->
     <div style="float: right;">
       <input type="submit" value="submit ic!">
     </div>
@@ -1802,14 +1806,14 @@ __DATA__
 </div>
 
 
-<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 130px;">
+<div style="margin: 5px; padding: 5px; border: 1px solid #333; height: 100px;">
   <form action="/set_oc" method="post" style="font-size: 1.5em;">
     <div style="display: none">
       <input type="text" name="user" value="<%= $c->stash('user') %>">
     </div>
     <div>
-      <label for="ocname" style="width: 100px;">oc name: </label>
-      <input type="text" name="ocname" id="ocname" required style="width: calc(100% - 110px);">
+      <label for="ocname" style="width: 100px;">oc : </label>
+      <input type="text" name="ocname" id="ocname" required style="width: calc(100% - 55px);">
     </div>
     <div>
     <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '早饭'">早饭</span>
@@ -1824,12 +1828,12 @@ __DATA__
     <span style="font-size: 0.8em; color: gray;">|</span>
     <span style="font-size: 0.8em; color: gray;" onclick="document.getElementById('ocname').value = '水果'">水果</span>
     </div>
-    <div>
+    <!--div>
       <label for="oc" style="width: 100px;">Enter oc: </label>
       <input type="text" name="oc" id="oc" required style="width: calc(100% - 110px);">
-    </div>
+    </div-->
     <div style="float: right;">
-      <input type="submit" value="submit oc1!">
+      <input type="submit" value="submit oc!">
     </div>
   </form>
   <script type="text/javascript">
