@@ -1,7 +1,8 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite -signatures;
 
-use Data::Dumper;use utf8;
+use Data::Dumper;
+use utf8;
 use Encode qw(decode_utf8);
 use Time::Piece;
 use Time::Seconds;
@@ -242,7 +243,7 @@ post '/add/:y/:m/:d' => sub ($c) {
 
   $c->render(text => '1');
 };
-
+# email to 862024320@qq.com
 app->start;
 __DATA__
 
@@ -288,16 +289,16 @@ __DATA__
     <span id="utc_count_msg4"></span>
     <br>
     <br>
-    <span style="font-size: 4.5rem;" id="utc_count_day">
+    <span style="font-size: 4.94rem;" id="utc_count_day">
     -
-    </span><span style="color: LightGray;">天</span><br>
-    <span style="font-size: 4.5rem;" id="utc_count_hh">
+    </span><span style="color: LightGray;" id="utc_count_day_unit">天</span>
+    <span style="font-size: 4.94rem;" id="utc_count_hh">
     -
-    </span><span style="color: LightGray;">时</span><br>
-    <span style="font-size: 4.5rem;" id="utc_count_mm">
+    </span><span style="color: LightGray;">时</span>
+    <span style="font-size: 4.94rem;" id="utc_count_mm">
     -
-    </span><span style="color: LightGray;">分</span><br>
-    <b style="font-size: 7.5rem;" id="utc_count_ss">
+    </span><span style="color: LightGray;">分</span>
+    <b style="font-size: 8rem;" id="utc_count_ss">
     -
     </b>秒<span id="utc_count_ms" style="color: black; font-size: 1.5rem;">ms</span>
   </p>
@@ -341,8 +342,14 @@ __DATA__
     clearRunCache();
     $('#action').text('reset!');
     $('#utc_count_ms').show();
+    $('#utc_count_day').show();
+    $('#utc_count_day_unit').show();
     $('#utc_count_msg3').text("开始时间 "+new Date().toLocaleString());
-    
+    $('#utc_count_day').text(setPrevZero(0));
+    $('#utc_count_hh').text(setPrevZero(0));
+    $('#utc_count_mm').text(setPrevZero(0));
+    $('#utc_count_ss').text(setPrevZero(0));
+
     let now_utc_secs_ms = new Date().getTime();
     interval = setInterval(function(){
       let val_utc_secs_ms = new Date().getTime();
@@ -366,43 +373,41 @@ __DATA__
 
   function setDateTimeCount(val) {
     clearRunCache();
+    $('#utc_count_day').show();
+    $('#utc_count_day_unit').show();
     let now_utc_secs = parseInt(new Date().getTime() * 1e-3);
     let val_utc_secs = parseInt(new Date(val).getTime() * 1e-3);
 
     let secs = val_utc_secs - now_utc_secs;
-    let msg2 = "已过";
-    $('#utc_count_msg2').css('color', 'green');
-    if (secs > 0) {
-      msg2 = "还有";
-      $('#utc_count_msg2').css('color', 'black');
-    }
 
     $('#utc_count_msg1').text("距离"+val);
-    $('#utc_count_msg2').text(","+msg2);
     $('#utc_count_msg3').text("计算时间 "+new Date().toLocaleString());
 
     
     interval = setInterval(function(){
       secs -= 1;
-      if (secs != -1) {
-        let day = parseInt(secs / (24*60*60));
-        let hh = parseInt((secs - day * 24*60*60) / (60*60));
-        let mm = parseInt((secs - day * 24*60*60 - hh*60*60) / (60));
-        let ss = parseInt((secs - day * 24*60*60 - hh*60*60 - mm*60));
-        $('#utc_count_day').text(setPrevZero(day));
-        $('#utc_count_hh').text(setPrevZero(hh));
-        $('#utc_count_mm').text(setPrevZero(mm));
-        $('#utc_count_ss').text(setPrevZero(ss));
-      } else {
-        clearInterval(interval);
-        $('#utc_count_msg2').text("已结束");
-        $('#utc_count_msg4').text("结束时间 "+new Date().toLocaleString());
+      let msg2 = "已过";
+      $('#utc_count_msg2').css('color', 'green');
+      if (secs > 0) {
+        msg2 = "还有";
+        $('#utc_count_msg2').css('color', 'black');
       }
+      $('#utc_count_msg2').text(","+msg2);
+      let day = parseInt(secs / (24*60*60));
+      let hh = parseInt((secs - day * 24*60*60) / (60*60));
+      let mm = parseInt((secs - day * 24*60*60 - hh*60*60) / (60));
+      let ss = parseInt((secs - day * 24*60*60 - hh*60*60 - mm*60));
+      $('#utc_count_day').text(setPrevZero(day));
+      $('#utc_count_hh').text(setPrevZero(hh));
+      $('#utc_count_mm').text(setPrevZero(mm));
+      $('#utc_count_ss').text(setPrevZero(ss));
     }, 1000);
   }
 
   function setTimeCount(val) {
     clearRunCache();
+    $('#utc_count_day').hide();
+    $('#utc_count_day_unit').hide();
     let vals = val.split(":");
     let hh = vals[0];
     let mm = vals[1];
@@ -413,7 +418,8 @@ __DATA__
     } else {
       $('#utc_count_msg1').text("倒计时"+ hh +"小时"+ mm +"分钟");
       $('#utc_count_msg2').text(",还有");
-      $('#utc_count_msg3').text("开始时间 "+new Date().toLocaleTimeString());
+      $('#utc_count_msg3').text("开始时间 "+new Date().toLocaleString());
+      $('#utc_count_msg4').text("预计结束时间 "+new Date(new Date().getTime() + (hh*60*60 + mm*60)*1000).toLocaleString());
       let secs = hh*60*60 + mm*60;
       
       interval = setInterval(function(){
@@ -430,7 +436,7 @@ __DATA__
         } else {
           clearInterval(interval);
           $('#utc_count_msg2').text("已结束");
-          $('#utc_count_msg4').text("结束时间 "+new Date().toLocaleTimeString());
+          $('#utc_count_msg4').text("实际结束时间 "+new Date().toLocaleString());
         }
       }, 1000);
     }
@@ -728,5 +734,9 @@ __DATA__
   }
   </style>
   </head>
-  <body><%= content %></body>
+  <body><%= content %>
+  <script>
+    console.log('email to 862024320@qq.com');
+  </script>
+  </body>
 </html>
