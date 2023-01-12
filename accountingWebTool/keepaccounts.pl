@@ -717,6 +717,11 @@ sub check_user_route_legal {
   }
 };
 
+# check user pwd legal 
+sub check_user_pwd_legal {
+  return 0;
+};
+
 #
 sub get_user_timeleft_str {
   my $user = shift;
@@ -763,6 +768,14 @@ sub get_user_timeleft_str {
   }
 }
 
+sub check_session {
+    my $c = shift;
+    if (defined $c->session->{'login'} and $c->session->{'login'} == 1) {
+        return 1;
+    }
+    return 0;
+}
+
 # coding
 # design
 # dev
@@ -776,6 +789,11 @@ post '/set_ic' => sub ($c) {
   my $user = $c->param('user');
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
+    return;
+  }
+
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
     return;
   }
 
@@ -796,6 +814,11 @@ post '/set_oc' => sub ($c) {
     return;
   }
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
+
   set_oc_txt_line_data($user, $ocname, $oc) if check_number($oc) and check_name($ocname);
 
   $c->redirect_to($user);
@@ -812,6 +835,11 @@ post '/upload_file' => sub ($c) {
   # my $record_str_origin = $c->param('record_str');
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
+    return;
+  }
+
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
     return;
   }
 
@@ -840,10 +868,47 @@ post '/upload_file' => sub ($c) {
   $c->redirect_to($user);
 };
 
+get '/:user/pwd/:token' => sub ($c) {
+  my $user = $c->stash('user');
+  my $token = $c->stash('token');
+  
+  unless(check_user_route_legal($user)){
+    $c->render(template => 'index');
+    return;
+  }
+
+  if ($user ne 'moshan' and $user ne 'ywang' and $token eq "$user\2") {
+    $c->session->{'login'} = 1;
+    $c->session(expiration => 7*24*60*60);
+    $c->redirect_to("/$user");
+    return;
+  }elsif ($user eq 'moshan' and $token eq 'moshan1') {
+    $c->session->{'login'} = 1;
+    $c->session(expiration => 10);
+    $c->redirect_to("/$user");
+    return;
+  }elsif ($user eq 'ywang' and $token eq "ywang9789a") {
+    $c->session->{'login'} = 1;
+    $c->session(expiration => 14*24*60*60);
+    $c->redirect_to("/$user");
+    return;
+  } else {
+    $c->session->{'login'} = 0;
+    $c->session(expiration => 1);
+    $c->render(template => 'nosession');
+    return;
+  }
+};
+
 get '/:user' => sub ($c) {
   my $user = $c->stash('user');
   unless(check_user_route_legal($user)){
     $c->render(template => 'index');
+    return;
+  }
+
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
     return;
   }
   my ($year, $month, $day) = get_year_month_day();
@@ -889,6 +954,12 @@ post '/set_txt_content' => sub ($c) {
     $c->render(template => 'index');
     return;
   }
+
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
+
   if ($oper eq 'ic') {
     my $path = get_user_ic_data_path($user);
     `rm -f $path`;
@@ -915,6 +986,12 @@ post '/:user/get_date_statistic' => sub ($c) {
     $c->render(template => 'index');
     return;
   }
+
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
+
   if ($datestart eq '' or $dateend eq '' ) {
     $c->redirect_to("/$user/$oper");
     return;
@@ -1009,6 +1086,11 @@ get '/:user/:oper' => sub ($c) {
     return;
   }
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
+
   if ($oper eq 'removealldata') {
     # `rm -rf $root_path/$user`;
     # $c->render(text => 'ok');
@@ -1053,6 +1135,10 @@ get '/txtmodify/:user/:y/:m/#txt' => sub ($c) {
     return;
   }
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
   # say $user, $y, $m, $txt;
 
   my $txt_content_array = get_txt_content_to_array($user, $y, $m, $txt);
@@ -1079,6 +1165,10 @@ get '/delete_txt_line/:user/:y/:m/#txt/:content' => sub ($c) {
     return;
   }
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
   # my $decode_content = decode_base64($content);
   
   my @txts_content_arrs = ();
@@ -1123,6 +1213,11 @@ post '/set_new_user' => sub ($c) {
     return;
   }
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
+
   if ($user ne 'ywang') {
     $c->stash(back_msg => 'not administrator, oper denied.');
     $c->render(template => 'adduser');
@@ -1163,6 +1258,11 @@ get '/show_record_files/:user/:y/:m/:d/:dir/:uuid8' => sub ($c) {
     return;
   }
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
+
   my $path = "$root_path/$user/$y/$m/$dir";
   unless (-d $path) {
     $c->redirect_to("/$user");
@@ -1195,6 +1295,10 @@ get '/get_files_img/:user/:y/:m/:dir/#file' => sub ($c) {
     return;
   }
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
   $c->reply->file("$root_path/$user/$y/$m/$dir/$file");
 };
 
@@ -1204,6 +1308,11 @@ get '/line_content_modify/:user/:y/:m/:d/:uuid8' => sub ($c) {
   my $m = $c->stash('m');
   my $d = $c->stash('d');
   my $uuid8 = $c->stash('uuid8');
+
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
 
   my $oc_line_ref = get_day_oc_txt_content_by_year_month_day_uuid8($user,$y,$m,$d,$uuid8);
 
@@ -1216,6 +1325,11 @@ get '/:user/timeleft/set/:date' => sub ($c) {
   my $user = $c->stash('user');
   my $date = $c->stash('date');
 
+  unless(check_session($c)){
+    $c->render(template => 'nosession');
+    return;
+  }
+
   my $path = get_user_calendar_txt_path($user);
   `echo $date > $path`;
 
@@ -1224,6 +1338,11 @@ get '/:user/timeleft/set/:date' => sub ($c) {
 
 app->start;
 __DATA__
+
+@@ nosession.html.ep
+% layout 'default';
+% title 'not login';
+<h1>Please login</h1>
 
 @@ index.html.ep
 % layout 'default';
@@ -1966,6 +2085,7 @@ __DATA__
 2022-10-25 zengjia wenjian shagnchuan EPC(Electronic Payment Voucher)
 2022-10-31 zengjia lishi oc jilu de preview alink
 2022-11-03 file format update[price tag]
+2023-01-12 session check added
 # coding
 # design
 # dev
