@@ -745,9 +745,9 @@ sub get_user_timeleft_str {
     my $s = $local - $t;
     my $days = $s->days - 1;
     my ($hh, $mm, $ss) = ($1, $2, $3) if $local->datetime =~ m/(\d{2}):(\d{2}):(\d{2})/;
-    $hh = $days * 24 + $hh;
-    $mm = $hh * 60 + $mm;
-    $ss = $mm * 60 + $ss;
+    # $hh = $days * 24 + $hh;
+    # $mm = $hh * 60 + $mm;
+    # $ss = $mm * 60 + $ss;
 
     return "past;$goal;$days;$hh;$mm;$ss";
 
@@ -760,9 +760,9 @@ sub get_user_timeleft_str {
     my $s = $t - $local;
     my $days = $s->days - 1;
     my ($hh, $mm, $ss) = ($1, $2, $3) if $local->datetime =~ m/(\d{2}):(\d{2}):(\d{2})/;
-    $hh = $days * 24 + 24 - $hh - 1;
-    $mm = $hh * 60 + 60 - $mm - 1;
-    $ss = $mm * 60 + 60 - $ss;
+    $hh = 24 - $hh - 1;
+    $mm = 60 - $mm - 1;
+    $ss = 60 - $ss;
 
     return "remain;$goal;$days;$hh;$mm;$ss";
   }
@@ -1011,7 +1011,7 @@ post '/:user/get_date_statistic' => sub ($c) {
   $msg .= '<br> avg oc: <br>';
   $msg .= 'zhangweizhangwei';
   $msg .= '<br> day avg oc: <br>';
-  $msg .= '<br> ic - oc = : <br>';
+  $msg .= '<br> oc - ic = : <br>';
   $msg .= add_str_start_end_b_tag( '<br> days detail: <br>' );
 
   my $ic_all_between_days = 0;
@@ -1064,7 +1064,7 @@ post '/:user/get_date_statistic' => sub ($c) {
   $avg_oc = sprintf("%.3f", $oc_all_by_start_end_day / $avg_days_count) if $avg_days_count != 0;
   $msg =~ s/<br> day avg oc: <br>/<br> <b>all days:<\/b> $avg_days_count , <b>avg oc:<\/b> $avg_oc<br>/g;
   my $diff = $oc_all_by_start_end_day - $ic_all_between_days;
-  $msg =~ s/<br> ic - oc = : <br>/<br> <b>ic - oc:<\/b> $oc_all_by_start_end_day - $ic_all_between_days = $diff <br>/g;
+  $msg =~ s/<br> oc - ic = : <br>/<br> <b>oc - ic:<\/b> $oc_all_by_start_end_day - $ic_all_between_days = $diff <br>/g;
   my $avg_oc_without_ic = 0;
   $avg_oc_without_ic = sprintf("%.3f", $diff / $avg_days_count) if $avg_days_count != 0;
   $msg =~ s/zhangweizhangwei/<br> <b>avg oc (without ic):<\/b> $avg_oc_without_ic <br>/g;
@@ -1850,14 +1850,22 @@ __DATA__
     }, 10*1000);
 
     setInterval(function(){
-      if (document.getElementById('timeleft_sec').innerText != '0'){
         if(status == 'remain'){
-          document.getElementById('timeleft_sec').innerText = document.getElementById('timeleft_sec').innerText - 1;
+            let a = parseInt(document.getElementById('timeleft_sec').innerText - 1);
+            if (a == 0) {
+                document.getElementById('timeleft_sec').innerText = 59;
+            } else {
+                document.getElementById('timeleft_sec').innerText = a;
+            }
         }
         if(status == 'past'){
-          document.getElementById('timeleft_sec').innerText = parseInt(document.getElementById('timeleft_sec').innerText) + 1;
+            let a = parseInt(document.getElementById('timeleft_sec').innerText) + 1;
+            if (a == 60) {
+                document.getElementById('timeleft_sec').innerText = 0;
+            } else {
+                document.getElementById('timeleft_sec').innerText = a;
+            }
         }
-      }
     }, 1000);
   }
 
