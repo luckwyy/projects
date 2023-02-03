@@ -1923,7 +1923,7 @@ __DATA__
       <label for="ic" style="width: 100px;">Enter ic: </label>
       <input type="text" name="ic" id="ic" value="<%= $c->stash('ic') %>" required style="width: calc(100% - 110px);">
     </div-->
-    <div style="float: right;">
+    <div style="float: left;">
       <input type="submit" value="submit ic!">
     </div>
   </form>
@@ -1959,7 +1959,7 @@ __DATA__
       <label for="oc" style="width: 100px;">Enter oc: </label>
       <input type="text" name="oc" id="oc" required style="width: calc(100% - 110px);">
     </div-->
-    <div style="float: right;">
+    <div style="float: left;">
       <input type="submit" value="submit oc!">
     </div>
   </form>
