@@ -65,11 +65,41 @@ sub append_line_info_to_txt {
   return 1;
 };
 
+# this sub will overflow the path with the content
+sub write_all_info_to_txt {
+  my ($content, $path) = @_;
+  `touch $path` unless -e $path;
+  open(my $log, ">", $path) or die "Can't open $!";
+  print $log $content;
+  close $log or die "$log: $!";
+  return 1;
+};
+
 sub get_write_valid_user_line_info {
   my ($user, $pwd) = @_;
   my $time = get_datetime();
   my $uid8 = get_unique_uuid_8();
-  return "[user:$user:user] [pwd:$pwd:pwd] [uid8:$uid8:uid8] [create_time:$time:create_time] [update_time:$time:update_time]";
+  my $res = "[uid8:$uid8:uid8]";
+  $res .= "[user-$uid8:$user:user-$uid8]";
+  $res .= "[pwd-$uid8:$pwd:pwd-$uid8]";
+  $res .= "[create_time-$uid8:$time:create_time-$uid8]";
+  $res .= "[update_time-$uid8:$time:update_time-$uid8]";
+  return $res;
+};
+
+sub get_write_one_expend_record_line_info {
+  my ($nice, $balance, $tags) = @_;
+  my $time = get_datetime();
+  my $uid8 = get_unique_uuid_8();
+  my $is_deleted = 0;
+  my $res = "[uid8:$uid8:uid8]";
+  $res .= "[nice-$uid8:$nice:nice-$uid8]";
+  $res .= "[balance-$uid8:$balance:balance-$uid8]";
+  $res .= "[tags-$uid8:$tags:tags-$uid8]";
+  $res .= "[create_time-$uid8:$time:create_time-$uid8]";
+  $res .= "[update_time-$uid8:$time:update_time-$uid8]";
+  $res .= "[is_deleted-$uid8:$is_deleted:is_deleted-$uid8]";
+  return $res;
 };
 
 sub check_user_valid {
@@ -79,8 +109,14 @@ sub check_user_valid {
     append_line_info_to_txt(get_write_valid_user_line_info('ywang', 'token_str'), $valid_user_file);
     append_line_info_to_txt(get_write_valid_user_line_info('moshan', 'moshan1'), $valid_user_file);
   }
-  my $content = `cat $valid_user_file`;
-  $flag = 1 if $content =~ m/\[user:$user:user\]/;
+  my $arrs = get_txt_content_lines($valid_user_file);
+  foreach(@$arrs){
+    my $tmp_uid8 = $1 if $_ =~ m/\[uid8:(.*?):uid8\]/;
+    if ($_ =~ m/\[user-$tmp_uid8:$user:user-$tmp_uid8\]/) {
+      $flag = 1;
+      last;
+    }
+  }
   return $flag;
 };
 
@@ -90,8 +126,12 @@ sub check_user_pwd {
   return $flag unless -e $valid_user_file;
   my $content_arrs = get_txt_content_lines($valid_user_file);
   foreach my $line (@$content_arrs) {
-    if ($line =~ m/\[user:$user:user\]/) {
-      $flag = 1 if $line =~ m/\[pwd:$pwd:pwd\]/
+    my $tmp_uid8 = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
+    if ($line =~ m/\[user-$tmp_uid8:$user:user-$tmp_uid8\]/) {
+      if ($line =~ m/\[pwd-$tmp_uid8:$pwd:pwd-$tmp_uid8\]/) {
+        $flag = 1;
+        last;
+      }
     }
   }
   return $flag;
@@ -130,13 +170,14 @@ sub check_nice_balance {
 sub analysis_ic_oc_line_info {
   my $line = shift;
   my $hash = {};
-  $hash->{'nice'} = decode_utf8($1) if $line =~ m/\[nice:(.*?):nice\]/;
-  $hash->{'balance'} = $1 if $line =~ m/\[balance:(.*?):balance\]/;
-  $hash->{'tags'} = decode_utf8($1) if $line =~ m/\[tags:(.*?):tags\]/;
   $hash->{'uid8'} = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
-  $hash->{'create_time'} = $1 if $line =~ m/\[create_time:(.*?):create_time\]/;
-  $hash->{'update_time'} = $1 if $line =~ m/\[update_time:(.*?):update_time\]/;
-  $hash->{'is_deleted'} = $1 if $line =~ m/\[is_deleted:(.*?):is_deleted\]/;
+  my $tmp_uid8 = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
+  $hash->{'nice'} = decode_utf8($1) if $line =~ m/\[nice-$tmp_uid8:(.*?):nice-$tmp_uid8\]/;
+  $hash->{'balance'} = $1 if $line =~ m/\[balance-$tmp_uid8:(.*?):balance-$tmp_uid8\]/;
+  $hash->{'tags'} = decode_utf8($1) if $line =~ m/\[tags-$tmp_uid8:(.*?):tags-$tmp_uid8\]/;
+  $hash->{'create_time'} = $1 if $line =~ m/\[create_time-$tmp_uid8:(.*?):create_time-$tmp_uid8\]/;
+  $hash->{'update_time'} = $1 if $line =~ m/\[update_time-$tmp_uid8:(.*?):update_time-$tmp_uid8\]/;
+  $hash->{'is_deleted'} = $1 if $line =~ m/\[is_deleted-$tmp_uid8:(.*?):is_deleted-$tmp_uid8\]/;
   return $hash;
 };
 
@@ -210,10 +251,7 @@ sub write_one_line_expend_record {
   my $record_file = "$day_content_path/oc$d.rec";
   $record_file = "$day_content_path/ic.rec" if $nice_type == 1;
   
-  my $time = get_datetime();
-  my $uid8 = get_unique_uuid_8();
-  my $info = "[nice:$nice:nice] [balance:$balance:balance] [tags:$tags:tags] [uid8:$uid8:uid8] [create_time:$time:create_time] [update_time:$time:update_time] [is_deleted:0:is_deleted]";
-
+  my $info = get_write_one_expend_record_line_info($nice, $balance, $tags);
   append_line_info_to_txt($info, $record_file);
 
   return;
@@ -248,23 +286,58 @@ sub get_input_month_expend_info {
   return $res;
 };
 
-sub get_input_between_two_date_expend_info {
-    my ($user, $start, $end) = @_;
-    $end = `date -d "$end +1 day" +\%Y-\%m-\%d`;
-    chomp $end;
-    if($start gt $end) {
-        my $tmp = $start;
-        $start = $end;
-        $end = $tmp;
+# get relative date interval
+sub get_interval_date {
+    my ($start, $end) = @_;
+    if (defined $end) {
+        if($start gt $end) {
+            my $tmp = $start;
+            $start = $end;
+            $end = $tmp;
+        }
+        $end = `date -d "$end +1 day" +\%Y-\%m-\%d`;
+        chomp $end;
+    } else {
+        # only year
+        if ($start =~ m/^\d{4}$/) {
+            my $next_year = int($start) + 1;
+            $start = "$start-01-01";
+            $end = "$next_year-01-01";
+        } elsif ($start =~ m/^\d{4}-\d{2}$/) {
+            $start = "$start-01";
+            $end = `date -d "$start +1 month" +\%Y-\%m-\%d`;
+            chomp $end;
+        } elsif ($start =~ m/^\d{4}-\d{2}-\d{2}$/) {
+            $end = `date -d "$start +1 day" +\%Y-\%m-\%d`;
+            chomp $end;
+        }
     }
-
+    return $start, $end;
+};
+# common sub for get input date expend_info
+sub get_input_self_adption_date_expend_info {
+    my ($user, $start, $end) = @_;
+    ($start, $end) = get_interval_date($start, $end);
     my $res = {};
+    $res->{'oc_conclusion'} = {};
+    $res->{'ic_conclusion'} = {};
     while($start ne $end){
         $end = `date -d "$end -1 day" +\%Y-\%m-\%d`;
         chomp $end;
         my ($year, $month, $day) = ($1, $2, $3) if $end =~ m/(.*)-(.*)-(.*)/;
         my $file_path = "$expenditure_dir/$user/$year/$month/oc$day.rec";
-        $res->{$year}->{$month}->{$day} = get_one_expend_record_file_hash($user, $file_path);
+        my $hash = get_one_expend_record_file_hash($user, $file_path);
+        $res->{$year}->{$month}->{'oc'}->{$day} = $hash;
+        if(scalar @{$hash->{'detail'}} != 0) {
+            $res->{'oc_conclusion'}->{'total_balance'} += $hash->{'analysis'}->{'total_balance'};
+        }
+
+        $file_path = "$expenditure_dir/$user/$year/$month/ic.rec";
+        $hash = get_one_expend_record_file_hash($user, $file_path);
+        $res->{$year}->{$month}->{'ic'} = $hash;
+        # if(scalar @{$hash->{'detail'}} != 0) {
+        #     $res->{'ic_conclusion'}->{'total_balance'} += $hash->{'analysis'}->{'total_balance'};
+        # }
     }
     return $res;
 };
@@ -283,21 +356,10 @@ sub delete_expend_one_line {
   return unless -e $file_path;
 
   my $content = `cat $file_path`;
-  my @arrs = split '\n', $content;
-  if($content =~ s/\[is_deleted:0:is_deleted\]/\[is_deleted:1:is_deleted\]/) {
-    clear_rec($file_path); # firstly clear
-    foreach(@arrs) {
-      my $line = $_;
-      if ($line =~ m/\[uid8:$uid8:uid8\]/) {
-        $line =~ s/\[is_deleted:0:is_deleted\]/\[is_deleted:1:is_deleted\]/;
-        my $deleted_time = get_datetime();
-        $line =~ s/\[update_time:(.*?):update_time\]/\[update_time:$deleted_time:update_time\]/;
-      }
-      open(my $log, ">>", $file_path) or die "Can't open $!";
-      say $log $line;
-      close $log or die "$log: $!";
-    }
-  }
+  $content =~ s/\[is_deleted-$uid8:0:is_deleted-$uid8\]/\[is_deleted-$uid8:1:is_deleted-$uid8\]/;
+  my $deleted_time = get_datetime();
+  $content =~ s/\[update_time-$uid8:(.*?):update_time-$uid8\]/\[update_time-$uid8:$deleted_time:update_time-$uid8\]/;
+  write_all_info_to_txt($content, $file_path);
 };
 
 ######################################################################################
@@ -317,13 +379,13 @@ get '/:user' => sub ($c) {
   }
   my $YmdHMS = get_YmdMHS_hash();
 
-  my $ic_oc = get_input_month_expend_info($user, $YmdHMS->{'y'}, $YmdHMS->{'m'});
-  say Dumper $ic_oc;
-  # my $bet = get_input_between_two_date_expend_info($user, '2022-10-10', '2023-03-04');
-  # say Dumper $bet;
+#   my $ic_oc = get_input_month_expend_info($user, $YmdHMS->{'y'}, $YmdHMS->{'m'});
+  #   say Dumper $ic_oc;
+  my $adption = get_input_self_adption_date_expend_info($user, "$YmdHMS->{'y'}-$YmdHMS->{'m'}");
+#   say Dumper $adption;
 
-
-  $c->stash(ic_oc => $ic_oc);
+#   $c->stash(ic_oc => $ic_oc);
+  $c->stash(adption => $adption);
   $c->stash(YmdHMS => $YmdHMS);
   $c->render(template=>'user');
 };
@@ -495,7 +557,8 @@ __DATA__
 % my $msg_color = $c->flash('msg_color');
 % my $msg = $c->flash('msg');
 % my $user = $c->stash('user');
-% my $ic_oc = $c->stash('ic_oc');
+% # my $ic_oc = $c->stash('ic_oc');
+% my $adption = $c->stash('adption');
 % my $YmdHMS = $c->stash('YmdHMS');
 
 <p style="text-align: center; font-size: 0.8rem; width: 300px; height: 50px; margin: 0 auto; line-height: 50px;">
@@ -558,52 +621,52 @@ __DATA__
   <p style="margin: 0 auto; font-size: 0.8rem;">
     <b>month detail: </b> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      total oc : <%= $ic_oc->{'oc_month'}->{'total_balance'} %>
+      total oc : <%= $adption->{'oc_conclusion'}->{'total_balance'} %>
       </span> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      total ic : <%= $ic_oc->{'ic'}->{'analysis'}->{'total_balance'} %>
+      total ic : <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %>
       </span> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      avg (<%= $ic_oc->{'oc_month'}->{'total_balance'} %> / <%= $YmdHMS->{'d'} %>) : 
-      <%= sprintf("%.3f", $ic_oc->{'oc_month'}->{'total_balance'} / $YmdHMS->{'d'} ) %>
+      avg (<%= $adption->{'oc_conclusion'}->{'total_balance'} %> / <%= $YmdHMS->{'d'} %>) : 
+      <%= sprintf("%.3f", $adption->{'oc_conclusion'}->{'total_balance'} / $YmdHMS->{'d'} ) %>
       </span> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      avg ((<%= $ic_oc->{'oc_month'}->{'total_balance'} %> - <%= $ic_oc->{'ic'}->{'analysis'}->{'total_balance'} %>) / <%= $YmdHMS->{'d'} %>) : 
-      <%= sprintf("%.3f", ($ic_oc->{'oc_month'}->{'total_balance'} - $ic_oc->{'ic'}->{'analysis'}->{'total_balance'}) / $YmdHMS->{'d'} ) %>
+      avg ((<%= $adption->{'oc_conclusion'}->{'total_balance'} %> - <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %>) / <%= $YmdHMS->{'d'} %>) : 
+      <%= sprintf("%.3f", ($adption->{'oc_conclusion'}->{'total_balance'} - $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'}) / $YmdHMS->{'d'} ) %>
       </span> <br>
   </p>
   <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
   <p style="margin: 0 auto;">
-    <b style="font-size: 0.8rem;">ic ( <%= $ic_oc->{'ic'}->{'analysis'}->{'total_balance'} %> $):</b> <br>
-    % foreach( @{$ic_oc->{'ic'}->{'detail'}} ){
+    <b style="font-size: 0.8rem;">ic ( <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %> $):</b> <br>
+    % foreach( @{$adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'detail'}} ){
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      <%= $_->{'nice'} ne "" ? $_->{'nice'} : $_->{'tags'} %> : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
+      <%= $_->{'nice'} %> [<%= $_->{'tags'} %>] : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
       </span> 
-      <a href="/delete_one_line_record/<%= $ic_oc->{'ic'}->{'analysis'}->{'ymd'} %>/ic/<%= $_->{'uid8'} %>"
+      <a href="/delete_one_line_record/<%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'ymd'} %>/ic/<%= $_->{'uid8'} %>"
       onclick="return(confirm('confirm?'))"
       ><span style="color: darkred; font-size: 0.6rem;">delete</span></a>
       <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
     % }
   </p>
   <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
-  % foreach my $oc_key (reverse sort keys %{$ic_oc->{'oc'}}) {
+  % foreach my $oc_key (reverse sort keys %{$adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}}) {
     % if ($oc_key <= $YmdHMS->{'d'}) {
       <p style="margin: 0 auto;">
-        % if (scalar @{$ic_oc->{'oc'}->{$oc_key}->{'detail'}} != 0) {
-          <b style="font-size: 0.8rem;"><%= $oc_key %> ( <%= $ic_oc->{'oc'}->{$oc_key}->{'analysis'}->{'total_balance'} %> $):</b> <br>
-          % foreach( @{$ic_oc->{'oc'}->{$oc_key}->{'detail'}} ){
+        % if (scalar @{$adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'detail'}} != 0) {
+          <b style="font-size: 0.8rem;"><%= $oc_key %> ( <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'analysis'}->{'total_balance'} %> $):</b> <br>
+          % foreach( @{$adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'detail'}} ){
             <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-              <%= $_->{'nice'} ne "" ? $_->{'nice'} : $_->{'tags'} %> : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
+              <%= $_->{'nice'} %> [<%= $_->{'tags'} %>] : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
             </span>
-            <a href="/delete_one_line_record/<%= $ic_oc->{'oc'}->{$oc_key}->{'analysis'}->{'ymd'} %>/oc/<%= $_->{'uid8'} %>"
+            <a href="/delete_one_line_record/<%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'analysis'}->{'ymd'} %>/oc/<%= $_->{'uid8'} %>"
             onclick="return(confirm('confirm?'))"
             ><span style="color: darkred; font-size: 0.6rem;">delete</span></a>
             % if ($_->{'epcs'}->{'number'} != 0) {
-              <a href="/show_epcs/<%= $ic_oc->{'oc'}->{$oc_key}->{'analysis'}->{'ymd'} %>/<%= $_->{'uid8'} %>"
+              <a href="/show_epcs/<%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'analysis'}->{'ymd'} %>/<%= $_->{'uid8'} %>"
               ><span style="color: darkblue; font-size: 0.6rem;">preview_epcs_<%= $_->{'epcs'}->{'number'} %></span></a>
             % }
             % if ($oc_key == $YmdHMS->{'d'}) {
-              <form name="<%= $_->{'uid8'} %>" style="font-size: 0.6rem;" action="/upload_file/<%= $ic_oc->{'oc'}->{$oc_key}->{'analysis'}->{'ymd'} %>/<%= $_->{'uid8'} %>" enctype="multipart/form-data" method="post">
+              <form name="<%= $_->{'uid8'} %>" style="font-size: 0.6rem;" action="/upload_file/<%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'analysis'}->{'ymd'} %>/<%= $_->{'uid8'} %>" enctype="multipart/form-data" method="post">
                 <input type="file" id="files" name="files">
                 <input id="<%= $_->{'uid8'} %>" type="submit" value="EPC UP!">
               </form>
