@@ -25,236 +25,236 @@ sub convert_one_to_two_number {
 };
 
 sub get_unique_uuid_8 {
-  my $uuid8 = $1 if `uuidgen` =~ m/(.*?)-/;
-  return $uuid8;
+    my $uuid8 = $1 if `uuidgen` =~ m/(.*?)-/;
+    return $uuid8;
 };
 
 sub get_datetime {
-  my $command = 'date +%Y-%m-%d\ %H:%M:%S';
-  my $linux_current_time = `$command`;
-  chomp $linux_current_time;
-  return $linux_current_time;
+    my $command = 'date +%Y-%m-%d\ %H:%M:%S';
+    my $linux_current_time = `$command`;
+    chomp $linux_current_time;
+    return $linux_current_time;
 };
 
 sub get_YmdMHS_hash {
-  my $command = 'date +%Y-%m-%d\ %H:%M:%S';
-  my $linux_current_time = `$command`;
-  my ($y, $m, $d, $hh, $mm, $ss) = ($1, $2, $3, $4, $5, $6) if $linux_current_time =~ m/(.*)-(.*)-(.*) (.*):(.*):(.*)/;
-  my $hash = {'y' => $y, 'm' => $m, 'd' => $d, 'hh' => $hh, 'mm' => $mm, 'ss' => $ss, 'ymd' => "$y-$m-$d"};
-  return $hash;
+    my $command = 'date +%Y-%m-%d\ %H:%M:%S';
+    my $linux_current_time = `$command`;
+    my ($y, $m, $d, $hh, $mm, $ss) = ($1, $2, $3, $4, $5, $6) if $linux_current_time =~ m/(.*)-(.*)-(.*) (.*):(.*):(.*)/;
+    my $hash = {'y' => $y, 'm' => $m, 'd' => $d, 'hh' => $hh, 'mm' => $mm, 'ss' => $ss, 'ymd' => "$y-$m-$d"};
+    return $hash;
 };
 
 # get txt content and return array with line
 sub get_txt_content_lines {
-  my ($path) = @_;
-  my @arrs = ();
-  if (-e $path) {
-    my $content = `cat $path`;
-    @arrs = split '\n', $content;
-  }
-  return \@arrs;
+    my ($path) = @_;
+    my @arrs = ();
+    if (-e $path) {
+        my $content = `cat $path`;
+        @arrs = split '\n', $content;
+    }
+    return \@arrs;
 };
 
 sub append_line_info_to_txt {
-  my ($content, $path) = @_;
-  `touch $path` unless -e $path;
-  $content =~ s/\n/$new_line_sign/g;
-  open(my $log, ">>", $path) or die "Can't open $!";
-  say $log $content;
-  close $log or die "$log: $!";
-  return 1;
+    my ($content, $path) = @_;
+    `touch $path` unless -e $path;
+    $content =~ s/\n/$new_line_sign/g;
+    open(my $log, ">>", $path) or die "Can't open $!";
+    say $log $content;
+    close $log or die "$log: $!";
+    return 1;
 };
 
 # this sub will overflow the path with the content
 sub write_all_info_to_txt {
-  my ($content, $path) = @_;
-  `touch $path` unless -e $path;
-  open(my $log, ">", $path) or die "Can't open $!";
-  print $log $content;
-  close $log or die "$log: $!";
-  return 1;
+    my ($content, $path) = @_;
+    `touch $path` unless -e $path;
+    open(my $log, ">", $path) or die "Can't open $!";
+    print $log $content;
+    close $log or die "$log: $!";
+    return 1;
 };
 
 sub get_write_valid_user_line_info {
-  my ($user, $pwd) = @_;
-  my $time = get_datetime();
-  my $uid8 = get_unique_uuid_8();
-  my $res = "[uid8:$uid8:uid8]";
-  $res .= "[user-$uid8:$user:user-$uid8]";
-  $res .= "[pwd-$uid8:$pwd:pwd-$uid8]";
-  $res .= "[create_time-$uid8:$time:create_time-$uid8]";
-  $res .= "[update_time-$uid8:$time:update_time-$uid8]";
-  return $res;
+    my ($user, $pwd) = @_;
+    my $time = get_datetime();
+    my $uid8 = get_unique_uuid_8();
+    my $res = "[uid8:$uid8:uid8]";
+    $res .= "[user-$uid8:$user:user-$uid8]";
+    $res .= "[pwd-$uid8:$pwd:pwd-$uid8]";
+    $res .= "[create_time-$uid8:$time:create_time-$uid8]";
+    $res .= "[update_time-$uid8:$time:update_time-$uid8]";
+    return $res;
 };
 
 sub get_write_one_expend_record_line_info {
-  my ($nice, $balance, $tags) = @_;
-  my $time = get_datetime();
-  my $uid8 = get_unique_uuid_8();
-  my $is_deleted = 0;
-  my $res = "[uid8:$uid8:uid8]";
-  $res .= "[nice-$uid8:$nice:nice-$uid8]";
-  $res .= "[balance-$uid8:$balance:balance-$uid8]";
-  $res .= "[tags-$uid8:$tags:tags-$uid8]";
-  $res .= "[create_time-$uid8:$time:create_time-$uid8]";
-  $res .= "[update_time-$uid8:$time:update_time-$uid8]";
-  $res .= "[is_deleted-$uid8:$is_deleted:is_deleted-$uid8]";
-  return $res;
+    my ($nice, $balance, $tags) = @_;
+    my $time = get_datetime();
+    my $uid8 = get_unique_uuid_8();
+    my $is_deleted = 0;
+    my $res = "[uid8:$uid8:uid8]";
+    $res .= "[nice-$uid8:$nice:nice-$uid8]";
+    $res .= "[balance-$uid8:$balance:balance-$uid8]";
+    $res .= "[tags-$uid8:$tags:tags-$uid8]";
+    $res .= "[create_time-$uid8:$time:create_time-$uid8]";
+    $res .= "[update_time-$uid8:$time:update_time-$uid8]";
+    $res .= "[is_deleted-$uid8:$is_deleted:is_deleted-$uid8]";
+    return $res;
 };
 
 sub check_user_valid {
-  my ($user) = @_;
-  my $flag = 0;
-  unless(-e $valid_user_file) {
-    append_line_info_to_txt(get_write_valid_user_line_info('ywang', 'token_str'), $valid_user_file);
-    append_line_info_to_txt(get_write_valid_user_line_info('moshan', 'moshan1'), $valid_user_file);
-  }
-  my $arrs = get_txt_content_lines($valid_user_file);
-  foreach(@$arrs){
-    my $tmp_uid8 = $1 if $_ =~ m/\[uid8:(.*?):uid8\]/;
-    if ($_ =~ m/\[user-$tmp_uid8:$user:user-$tmp_uid8\]/) {
-      $flag = 1;
-      last;
+    my ($user) = @_;
+    my $flag = 0;
+    unless(-e $valid_user_file) {
+        append_line_info_to_txt(get_write_valid_user_line_info('ywang', 'token_str'), $valid_user_file);
+        append_line_info_to_txt(get_write_valid_user_line_info('moshan', 'moshan1'), $valid_user_file);
     }
-  }
-  return $flag;
+    my $arrs = get_txt_content_lines($valid_user_file);
+    foreach(@$arrs){
+        my $tmp_uid8 = $1 if $_ =~ m/\[uid8:(.*?):uid8\]/;
+        if ($_ =~ m/\[user-$tmp_uid8:$user:user-$tmp_uid8\]/) {
+        $flag = 1;
+        last;
+        }
+    }
+    return $flag;
 };
 
 sub check_user_pwd {
-  my ($user, $pwd) = @_;
-  my $flag = 0;
-  return $flag unless -e $valid_user_file;
-  my $content_arrs = get_txt_content_lines($valid_user_file);
-  foreach my $line (@$content_arrs) {
-    my $tmp_uid8 = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
-    if ($line =~ m/\[user-$tmp_uid8:$user:user-$tmp_uid8\]/) {
-      if ($line =~ m/\[pwd-$tmp_uid8:$pwd:pwd-$tmp_uid8\]/) {
-        $flag = 1;
-        last;
-      }
+    my ($user, $pwd) = @_;
+    my $flag = 0;
+    return $flag unless -e $valid_user_file;
+    my $content_arrs = get_txt_content_lines($valid_user_file);
+    foreach my $line (@$content_arrs) {
+        my $tmp_uid8 = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
+        if ($line =~ m/\[user-$tmp_uid8:$user:user-$tmp_uid8\]/) {
+        if ($line =~ m/\[pwd-$tmp_uid8:$pwd:pwd-$tmp_uid8\]/) {
+            $flag = 1;
+            last;
+        }
+        }
     }
-  }
-  return $flag;
+    return $flag;
 };
 
 sub check_login {
-  my ($c) = @_;
-  my $flag = 0;
-  $flag = 1 if defined $c->session('login') and $c->session('login') == 1;
-  return $flag;
+    my ($c) = @_;
+    my $flag = 0;
+    $flag = 1 if defined $c->session('login') and $c->session('login') == 1;
+    return $flag;
 };
 
 sub check_user_session {
-  my ($c, $user) = @_;
-  my $flag = 0;
-  $flag = 1 if defined $c->session('login') and $c->session('login') == 1 and $c->session('user') eq $user;
-  return $flag;
+    my ($c, $user) = @_;
+    my $flag = 0;
+    $flag = 1 if defined $c->session('login') and $c->session('login') == 1 and $c->session('user') eq $user;
+    return $flag;
 };
 
 sub check_nice_content {
-  my $s = shift;
-  my $tags = shift;
-  my $flag = 0;
-  $flag = 1 if $s !~ m/^ *$/;
-  $flag = 1 if $s eq "" and $tags =~ m/.*,$/;
-  return $flag;
+    my $s = shift;
+    my $tags = shift;
+    my $flag = 0;
+    $flag = 1 if $s !~ m/^ *$/;
+    $flag = 1 if $s eq "" and $tags =~ m/.*,$/;
+    return $flag;
 };
 
 sub check_nice_balance {
-  my $s = shift;
-  my $flag = 0;
-  $flag = 1 if $s =~ m/^[0-9]+([.]{1}[0-9]+){0,1}$/;
-  return $flag;
+    my $s = shift;
+    my $flag = 0;
+    $flag = 1 if $s =~ m/^[0-9]+([.]{1}[0-9]+){0,1}$/;
+    return $flag;
 };
 
 sub analysis_ic_oc_line_info {
-  my $line = shift;
-  my $hash = {};
-  $hash->{'uid8'} = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
-  my $tmp_uid8 = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
-  $hash->{'nice'} = decode_utf8($1) if $line =~ m/\[nice-$tmp_uid8:(.*?):nice-$tmp_uid8\]/;
-  $hash->{'balance'} = $1 if $line =~ m/\[balance-$tmp_uid8:(.*?):balance-$tmp_uid8\]/;
-  $hash->{'tags'} = decode_utf8($1) if $line =~ m/\[tags-$tmp_uid8:(.*?):tags-$tmp_uid8\]/;
-  $hash->{'create_time'} = $1 if $line =~ m/\[create_time-$tmp_uid8:(.*?):create_time-$tmp_uid8\]/;
-  $hash->{'update_time'} = $1 if $line =~ m/\[update_time-$tmp_uid8:(.*?):update_time-$tmp_uid8\]/;
-  $hash->{'is_deleted'} = $1 if $line =~ m/\[is_deleted-$tmp_uid8:(.*?):is_deleted-$tmp_uid8\]/;
-  return $hash;
+    my $line = shift;
+    my $hash = {};
+    $hash->{'uid8'} = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
+    my $tmp_uid8 = $1 if $line =~ m/\[uid8:(.*?):uid8\]/;
+    $hash->{'nice'} = decode_utf8($1) if $line =~ m/\[nice-$tmp_uid8:(.*?):nice-$tmp_uid8\]/;
+    $hash->{'balance'} = $1 if $line =~ m/\[balance-$tmp_uid8:(.*?):balance-$tmp_uid8\]/;
+    $hash->{'tags'} = decode_utf8($1) if $line =~ m/\[tags-$tmp_uid8:(.*?):tags-$tmp_uid8\]/;
+    $hash->{'create_time'} = $1 if $line =~ m/\[create_time-$tmp_uid8:(.*?):create_time-$tmp_uid8\]/;
+    $hash->{'update_time'} = $1 if $line =~ m/\[update_time-$tmp_uid8:(.*?):update_time-$tmp_uid8\]/;
+    $hash->{'is_deleted'} = $1 if $line =~ m/\[is_deleted-$tmp_uid8:(.*?):is_deleted-$tmp_uid8\]/;
+    return $hash;
 };
 
 # input: expend_record file path output: [ { a=>aa, b=>bb}, {} ]
 sub get_one_expend_record_file_hash {
-  my ($user, $file) = @_;
-  my $res = {};
-  $res->{'detail'} = [];
-  $res->{'analysis'} = {};
+    my ($user, $file) = @_;
+    my $res = {};
+    $res->{'detail'} = [];
+    $res->{'analysis'} = {};
 
-  if ($file =~ m/[io]c\d{0,2}\.rec$/) {
-    my $arrs = get_txt_content_lines($file);
-    foreach(@$arrs) {
-      my $line_hash = analysis_ic_oc_line_info($_);
-      push(@{$res->{'detail'}}, $line_hash) if $line_hash->{'is_deleted'} ne '1'; # only get not deleted line info
+    if ($file =~ m/[io]c\d{0,2}\.rec$/) {
+        my $arrs = get_txt_content_lines($file);
+        foreach(@$arrs) {
+            my $line_hash = analysis_ic_oc_line_info($_);
+            push(@{$res->{'detail'}}, $line_hash) if $line_hash->{'is_deleted'} ne '1'; # only get not deleted line info
+        }
+        if(scalar @{$res->{'detail'}} != 0 ) {
+            $res->{'analysis'} = get_one_expend_record_file_hash_analysis($user, $res->{'detail'});
+        }
     }
-    if(scalar @{$res->{'detail'}} != 0 ) {
-      $res->{'analysis'} = get_one_expend_record_file_hash_analysis($user, $res->{'detail'});
-    }
-  }
 
-  return $res;
+    return $res;
 };
 
 sub get_one_expend_record_file_hash_analysis {
-  my ($user, $arrs) = @_;
-  my $res = {};
+    my ($user, $arrs) = @_;
+    my $res = {};
 
-  my $total_balance = 0;
-  foreach(@$arrs){
-    $total_balance += $_->{'balance'};
-    $res->{'ymd'} = $1 if $_->{'create_time'} =~ m/(.*) \d+:\d+:\d+/;
-    # add the line epcs info
-    $_->{'epcs'} = get_the_line_epcs_info($user, $res->{'ymd'}, $_->{'uid8'});
-  }
-  $res->{'total_balance'} = $total_balance;
+    my $total_balance = 0;
+    foreach(@$arrs){
+        $total_balance += $_->{'balance'};
+        $res->{'ymd'} = $1 if $_->{'create_time'} =~ m/(.*) \d+:\d+:\d+/;
+        # add the line epcs info
+        $_->{'epcs'} = get_the_line_epcs_info($user, $res->{'ymd'}, $_->{'uid8'});
+    }
+    $res->{'total_balance'} = $total_balance;
 
-  return $res;
+    return $res;
 };
 
 sub get_the_line_epcs_info {
-  my ($user, $ymd, $uid8) = @_;
-  my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
-  my $hash = {};
-  my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
+    my ($user, $ymd, $uid8) = @_;
+    my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
+    my $hash = {};
+    my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
 
-  if(-d $epcs_dir) {
-    my $number = `ls $epcs_dir | grep '$uid8' | wc -l`;
-    chomp $number;
-    $hash->{'number'} = $number;
-    if ($number != 0) {
-      my $names = `ls $epcs_dir | grep '$uid8'`;
-      my @names = split('\n', $names);
-      $hash->{'names'} = \@names;
+    if(-d $epcs_dir) {
+        my $number = `ls $epcs_dir | grep '$uid8' | wc -l`;
+        chomp $number;
+        $hash->{'number'} = $number;
+        # if ($number != 0) {
+        #   my $names = `ls $epcs_dir | grep '$uid8'`;
+        #   my @names = split('\n', $names);
+        #   $hash->{'names'} = \@names;
+        # }
+        # $hash->{'names'} = [] if $number == 0;
+    } else {
+        $hash->{'number'} = 0;
+        # $hash->{'names'} = [];
     }
-    $hash->{'names'} = [] if $number == 0;
-  } else {
-    $hash->{'number'} = 0;
-    $hash->{'names'} = [];
-  }
 
-  return $hash;
+    return $hash;
 };
 
 # write one record, param: user year month day content balance $nice_type
 sub write_one_line_expend_record {
-  my ($user, $y, $m, $d, $nice, $balance, $tags, $nice_type) = @_;
+    my ($user, $y, $m, $d, $nice, $balance, $tags, $nice_type) = @_;
 
-  my $day_content_path = "$expenditure_dir/$user/$y/$m";
-  `mkdir -p $day_content_path` unless -d $day_content_path;
-  my $record_file = "$day_content_path/oc$d.rec";
-  $record_file = "$day_content_path/ic.rec" if $nice_type == 1;
-  
-  my $info = get_write_one_expend_record_line_info($nice, $balance, $tags);
-  append_line_info_to_txt($info, $record_file);
+    my $day_content_path = "$expenditure_dir/$user/$y/$m";
+    `mkdir -p $day_content_path` unless -d $day_content_path;
+    my $record_file = "$day_content_path/oc$d.rec";
+    $record_file = "$day_content_path/ic.rec" if $nice_type == 1;
+    
+    my $info = get_write_one_expend_record_line_info($nice, $balance, $tags);
+    append_line_info_to_txt($info, $record_file);
 
-  return;
+    return;
 };
 
 sub get_input_month_expend_info {
@@ -343,23 +343,23 @@ sub get_input_self_adption_date_expend_info {
 };
 
 sub clear_rec {
-  my $path = shift;
-  open(my $log, ">", $path) or die "Can't open $!";
-  close $log or die "$log: $!";
+    my $path = shift;
+    open(my $log, ">", $path) or die "Can't open $!";
+    close $log or die "$log: $!";
 };
 
 # delete one line info
 sub delete_expend_one_line {
-  my ($user, $year, $month, $day, $file_type, $uid8) = @_;
-  my $file_path = "$expenditure_dir/$user/$year/$month/oc$day.rec";
-  $file_path = "$expenditure_dir/$user/$year/$month/ic.rec" if $file_type eq 'ic';
-  return unless -e $file_path;
+    my ($user, $year, $month, $day, $file_type, $uid8) = @_;
+    my $file_path = "$expenditure_dir/$user/$year/$month/oc$day.rec";
+    $file_path = "$expenditure_dir/$user/$year/$month/ic.rec" if $file_type eq 'ic';
+    return unless -e $file_path;
 
-  my $content = `cat $file_path`;
-  $content =~ s/\[is_deleted-$uid8:0:is_deleted-$uid8\]/\[is_deleted-$uid8:1:is_deleted-$uid8\]/;
-  my $deleted_time = get_datetime();
-  $content =~ s/\[update_time-$uid8:(.*?):update_time-$uid8\]/\[update_time-$uid8:$deleted_time:update_time-$uid8\]/;
-  write_all_info_to_txt($content, $file_path);
+    my $content = `cat $file_path`;
+    $content =~ s/\[is_deleted-$uid8:0:is_deleted-$uid8\]/\[is_deleted-$uid8:1:is_deleted-$uid8\]/;
+    my $deleted_time = get_datetime();
+    $content =~ s/\[update_time-$uid8:(.*?):update_time-$uid8\]/\[update_time-$uid8:$deleted_time:update_time-$uid8\]/;
+    write_all_info_to_txt($content, $file_path);
 };
 
 ######################################################################################
@@ -368,163 +368,215 @@ sub delete_expend_one_line {
 ######################################################################################
 
 get '/' => sub ($c) {
-  $c->render(template => 'index');
+    $c->render(template => 'index');
 };
 
 get '/:user' => sub ($c) {
-  my $user = $c->stash('user');
-  unless (check_user_valid($user) and check_user_session($c, $user)) {
-    $c->redirect_to("/");
-    return;
-  }
-  my $YmdHMS = get_YmdMHS_hash();
+    my $user = $c->stash('user');
+    unless (check_user_valid($user) and check_user_session($c, $user)) {
+        $c->redirect_to("/");
+        return;
+    }
+    my $YmdHMS = get_YmdMHS_hash();
 
-#   my $ic_oc = get_input_month_expend_info($user, $YmdHMS->{'y'}, $YmdHMS->{'m'});
-  #   say Dumper $ic_oc;
-  my $adption = get_input_self_adption_date_expend_info($user, "$YmdHMS->{'y'}-$YmdHMS->{'m'}");
-#   say Dumper $adption;
+    #   my $ic_oc = get_input_month_expend_info($user, $YmdHMS->{'y'}, $YmdHMS->{'m'});
+    #   say Dumper $ic_oc;
+    my $adption = get_input_self_adption_date_expend_info($user, "$YmdHMS->{'y'}-$YmdHMS->{'m'}");
+    #   say Dumper $adption;
 
-#   $c->stash(ic_oc => $ic_oc);
-  $c->stash(adption => $adption);
-  $c->stash(YmdHMS => $YmdHMS);
-  $c->render(template=>'user');
+    #   $c->stash(ic_oc => $ic_oc);
+    $c->stash(adption => $adption);
+    $c->stash(YmdHMS => $YmdHMS);
+    $c->render(template=>'user');
 };
 
 get '/:user/pwd/:token_str' => sub ($c) {
-  my $user = $c->stash('user');
-  my $token_str = $c->stash('token_str');
-  if (check_user_pwd($user, $token_str)) {
-    $c->session->{'login'} = 1;
-    $c->session->{'user'} = $user;
-    $c->session(expiration => 7*24*60*60);
-    $c->redirect_to("/$user");
-  } else {
-    $c->redirect_to("/");
-  }
+    my $user = $c->stash('user');
+    my $token_str = $c->stash('token_str');
+    if (check_user_pwd($user, $token_str)) {
+        $c->session->{'login'} = 1;
+        $c->session->{'user'} = $user;
+        $c->session(expiration => 7*24*60*60);
+        $c->redirect_to("/$user");
+    } else {
+        $c->redirect_to("/");
+    }
 };
 
 post '/nice_record' => sub ($c) {
-  unless (check_login($c)) {
-    $c->redirect_to("/");
-    return;
-  }
-  my $user = $c->session->{'user'};
-  my $nice_type = $c->param('nice_type');
-  my $nice_tags = $c->param('nice_tags');
-  my $nice = $c->param('nice');
+    unless (check_login($c)) {
+        $c->redirect_to("/");
+        return;
+    }
+    my $user = $c->session->{'user'};
+    my $nice_type = $c->param('nice_type');
+    my $nice_tags = $c->param('nice_tags');
+    my $nice = $c->param('nice');
 
-  if ($nice_type !~ m/^[01]$/) {
-    $c->flash(msg_color => 'red', msg => 'nice_type illegal changed');
-    $c->redirect_to("/$user");
-    return;
-  }
-  my ($nice_content, $nice_balance) = ($1, $2) if $nice =~ m/(.*?)(\d+\.{0,1}\d*)$/;
+    if ($nice_type !~ m/^[01]$/) {
+        $c->flash(msg_color => 'red', msg => 'nice_type illegal changed');
+        $c->redirect_to("/$user");
+        return;
+    }
+    my ($nice_content, $nice_balance) = ($1, $2) if $nice =~ m/(.*?)(\d+\.{0,1}\d*)$/;
 
-  unless (check_nice_content($nice_content, $nice_tags) and check_nice_balance($nice_balance)) {
-    $c->flash(msg_color => 'red', msg => 'nice illegal');
+    unless (check_nice_content($nice_content, $nice_tags) and check_nice_balance($nice_balance)) {
+        $c->flash(msg_color => 'red', msg => 'nice illegal');
+        $c->redirect_to("/$user");
+        return;
+    }
+    my $YmdHMS = get_YmdMHS_hash();
+    write_one_line_expend_record($user, $YmdHMS->{'y'}, $YmdHMS->{'m'}, $YmdHMS->{'d'}, $nice_content, $nice_balance, $nice_tags, $nice_type);
+    # logic
+    $c->flash(msg_color => 'blue', msg => 'sucess');
     $c->redirect_to("/$user");
-    return;
-  }
-  my $YmdHMS = get_YmdMHS_hash();
-  write_one_line_expend_record($user, $YmdHMS->{'y'}, $YmdHMS->{'m'}, $YmdHMS->{'d'}, $nice_content, $nice_balance, $nice_tags, $nice_type);
-  # logic
-  $c->flash(msg_color => 'blue', msg => 'sucess');
-  $c->redirect_to("/$user");
 };
 
 get '/delete_one_line_record/:ymd/:file_type/:uid8' => sub ($c) {
-  unless (check_login($c)) {
-    $c->redirect_to("/");
-    return;
-  }
-  my $user = $c->session->{'user'};
-  my $ymd = $c->stash('ymd');
-  my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
-  my $file_type = $c->stash('file_type');
-  my $uid8 = $c->stash('uid8');
+    unless (check_login($c)) {
+        $c->redirect_to("/");
+        return;
+    }
+    my $user = $c->session->{'user'};
+    my $ymd = $c->stash('ymd');
+    my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
+    my $file_type = $c->stash('file_type');
+    my $uid8 = $c->stash('uid8');
 
-  delete_expend_one_line($user, $y, $m, $d, $file_type, $uid8);
-  
-  $c->redirect_to("/$user");
+    delete_expend_one_line($user, $y, $m, $d, $file_type, $uid8);
+    
+    $c->redirect_to("/$user");
 };
 
 post '/upload_file/:ymd/:uid8' => sub ($c) {
-  unless (check_login($c)) {
-    $c->redirect_to("/");
-    return;
-  }
-  my $user = $c->session->{'user'};
-  my $ymd = $c->stash('ymd');
-  my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
-  my $uid8 = $c->stash('uid8');
-
-  my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
-  `mkdir -p $epcs_dir` unless -d $epcs_dir;
-  foreach my $file (@{$c->req->uploads}) {
-		my $filename = $file->{'filename'};
-		my $name = $file->{'name'};
-    if ($filename ne '') {
-      my $current_time = get_datetime();
-      my $N = `date +%N`; # for the current upload file unique
-      chomp $N;
-      my $file_type = $1 if $filename =~ m/\.(.*?)$/;
-      # say $files_number;
-      my $fn1 = "$d\_$uid8\_$current_time\_$N\.$file_type";
-      # save file
-      $file->move_to("$epcs_dir/$fn1");
+    unless (check_login($c)) {
+        $c->redirect_to("/");
+        return;
     }
-	}
+    my $user = $c->session->{'user'};
+    my $ymd = $c->stash('ymd');
+    my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
+    my $uid8 = $c->stash('uid8');
 
-  $c->redirect_to("/$user");
+    my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
+    `mkdir -p $epcs_dir` unless -d $epcs_dir;
+    foreach my $file (@{$c->req->uploads}) {
+            my $filename = $file->{'filename'};
+            my $name = $file->{'name'};
+        if ($filename ne '') {
+        my $current_time = get_datetime();
+        my $N = `date +%N`; # for the current upload file unique
+        chomp $N;
+        my $file_type = $1 if $filename =~ m/\.(.*?)$/;
+        # say $files_number;
+        my $fn1 = "$d\_$uid8\_$current_time\_$N\.$file_type";
+        # save file
+        $file->move_to("$epcs_dir/$fn1");
+        }
+        }
+
+    $c->redirect_to("/$user");
 };
 
 get '/show_epcs/:ymd/:uid8' => sub ($c) {
-  unless (check_login($c)) {
-    $c->redirect_to("/");
-    return;
-  }
-  my $user = $c->session->{'user'};
-  my $ymd = $c->stash('ymd');
-  my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
-  my $uid8 = $c->stash('uid8');
-
-  my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
-
-  my $epcs = {};
-
-  if(-d $epcs_dir) {
-    my $number = `ls $epcs_dir | grep '$uid8' | wc -l`;
-    chomp $number;
-    $epcs->{'number'} = $number;
-    if ($number != 0) {
-      my $names = `ls $epcs_dir | grep '$uid8'`;
-      my @names = split('\n', $names);
-      $epcs->{'names'} = \@names;
+    unless (check_login($c)) {
+        $c->redirect_to("/");
+        return;
     }
-    $epcs->{'names'} = [] if $number == 0;
-  } else {
-    $epcs->{'number'} = 0;
-    $epcs->{'names'} = [];
-  }
+    my $user = $c->session->{'user'};
+    my $ymd = $c->stash('ymd');
+    my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
+    my $uid8 = $c->stash('uid8');
 
-  $c->stash(ymd => $ymd);
-  $c->stash(epcs => $epcs);
-  $c->render(template => 'epcs_display');
+    my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
+
+    my $epcs = {};
+
+    if(-d $epcs_dir) {
+        my $number = `ls $epcs_dir | grep '$uid8' | wc -l`;
+        chomp $number;
+        $epcs->{'number'} = $number;
+        if ($number != 0) {
+        my $names = `ls $epcs_dir | grep '$uid8'`;
+        my @names = split('\n', $names);
+        $epcs->{'names'} = \@names;
+        }
+        $epcs->{'names'} = [] if $number == 0;
+    } else {
+        $epcs->{'number'} = 0;
+        $epcs->{'names'} = [];
+    }
+
+    $c->stash(ymd => $ymd);
+    $c->stash(epcs => $epcs);
+    $c->render(template => 'epcs_display');
 };
 
 get '/download_file/:ymd/#name' => sub ($c) {
-  unless (check_login($c)) {
-    $c->redirect_to("/");
-    return;
-  }
-  my $user = $c->session->{'user'};
-  my $ymd = $c->stash('ymd');
-  my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
-  my $name = $c->stash('name');
+    unless (check_login($c)) {
+        $c->redirect_to("/");
+        return;
+    }
+    my $user = $c->session->{'user'};
+    my $ymd = $c->stash('ymd');
+    my ($y, $m, $d) = ($1, $2, $3) if $ymd =~ m/(.*)-(.*)-(.*)/;
+    my $name = $c->stash('name');
 
-  my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
+    my $epcs_dir = "$expenditure_dir/$user/$y/$m/epcs";
 
-  $c->reply->file("$epcs_dir/$name");
+    $c->reply->file("$epcs_dir/$name");
+};
+
+post '/set_datastatic_date' => sub ($c) {
+    unless (check_login($c)) {
+        $c->redirect_to("/");
+        return;
+    }
+    my $user = $c->session->{'user'};
+    my $date1 = $c->param('date1');
+    my $date2 = $c->param('date2');
+
+    $c->flash(date1 => $date1);
+    $c->flash(date2 => $date2);
+
+    $c->redirect_to("/$user/datastatic");
+};
+
+get '/:user/datastatic' => sub ($c) {
+    my $user = $c->stash('user');
+    unless (check_user_valid($user) and check_user_session($c, $user)) {
+        $c->redirect_to("/");
+        return;
+    }
+
+    my $date1 = $c->flash('date1');
+    my $date2 = $c->flash('date2');
+
+    if ('' eq $date1 and '' eq $date2) {
+        $date1 = `date +\%Y-\%m-\%d`;
+        chomp $date1;
+        $date2 = `date +\%Y-\%m-\%d`;
+        chomp $date2;
+    } else {
+        if ('' eq $date1) {
+            ($date1, $date2) = get_interval_date($date2);
+        } elsif ('' eq $date2) {
+            ($date1, $date2) = get_interval_date($date1);
+        } else {
+            ($date1, $date2) = get_interval_date($date1, $date2);
+        }
+        $date2 = `date -d "$date2 -1 day" +\%Y-\%m-\%d`;
+        chomp $date2;
+    }
+
+    my $YmdHMS = get_YmdMHS_hash();
+    my $adption = get_input_self_adption_date_expend_info($user, $date1, $date2);
+    
+    $c->stash(date1 => $date1);
+    $c->stash(date2 => $date2);
+    $c->stash(YmdHMS => $YmdHMS);
+    $c->stash(adption => $adption);
+    $c->render(template => 'datastatic');
 };
 
 app->start;
@@ -534,6 +586,90 @@ __DATA__
 % layout 'default';
 % title 'Index';
 <h1>Index</h1>
+
+@@ datastatic.html.ep
+% layout 'default';
+% title 'datastatic';
+
+% my $user = $c->session('user');
+% my $date1 = $c->stash('date1');
+% my $date2 = $c->stash('date2');
+% my $YmdHMS = $c->stash('YmdHMS');
+% my $adption = $c->stash('adption');
+
+<p style="text-align: center; font-size: 0.8rem;">
+  <b style="text-transform: uppercase;"><%= $user %></b>&nbsp;&nbsp;<span><%= $YmdHMS->{'ymd'} %></span>
+</p>
+<hr style="width: 300px; margin: 0 auto; margin-top: 5px; margin-bottom: 5px;">
+
+<p style="text-align: center; font-size: 0.8rem;">
+  <a onclick="history.back()" style="color: blue;">go back</a>
+   | 
+  <a href="/<%= $user %>">home</a>
+</p>
+<hr style="width: 300px; margin: 0 auto; margin-top: 5px; margin-bottom: 5px;">
+
+<form action="/set_datastatic_date" method="post">
+  <div>
+    <label for="name">start date: </label>
+    <input type="date" name="date1" id="date1" value="<%= $date1 %>">
+  </div>
+  <div>
+    <label for="email">end date: </label>
+    <input type="date" name="date2" id="date2" value="<%= $date2 %>">
+  </div>
+  <div >
+    <input type="submit" value="Subscribe!">
+  </div>
+</form>
+
+<div style="padding: 5px 5px 5px 5px; margin: 0px 5px 0px 5px; border: 0.5px solid black;">
+    <p style="margin: 0 auto; font-size: 0.8rem;">
+    <b>平均: </b> <br>
+        <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
+        总支出 : <%= $adption->{'oc_conclusion'}->{'total_balance'} %>
+        </span> <br>
+    </p>
+    <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
+    
+    <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
+    % foreach my $year (reverse sort keys %{$adption}) {
+        % if ($year =~ m/^\d{4}$/) {
+            % foreach my $month (reverse sort keys %{$adption->{$year}}) {
+                <p><b> <%= $year . '-' . $month %> </b><p>
+                % if (scalar @{$adption->{$year}->{$month}->{'ic'}->{'detail'}} != 0) {
+                    <p style="margin: 0 auto;">
+                        <b style="font-size: 0.8rem;">退入 ( <%= $adption->{$year}->{$month}->{'ic'}->{'analysis'}->{'total_balance'} %> $):</b> <br>
+                        % foreach( @{$adption->{$year}->{$month}->{'ic'}->{'detail'}} ){
+                            <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
+                            <%= $_->{'nice'} %> [<%= $_->{'tags'} %>] : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
+                            </span>
+                            <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
+                        % }
+                    </p>
+                % }
+                % foreach my $oc_key (reverse sort keys %{$adption->{$year}->{$month}->{'oc'}}) {
+                    <p style="margin: 0 auto;">
+                        % if (scalar @{$adption->{$year}->{$month}->{'oc'}->{$oc_key}->{'detail'}} != 0) {
+                            <b style="font-size: 0.8rem;"><%= $month . '-' . $oc_key %> ( <%= $adption->{$year}->{$month}->{'oc'}->{$oc_key}->{'analysis'}->{'total_balance'} %> $):</b> <br>
+                            % foreach( @{$adption->{$year}->{$month}->{'oc'}->{$oc_key}->{'detail'}} ){
+                                <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
+                                <%= $_->{'nice'} %> [<%= $_->{'tags'} %>] : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
+                                </span>
+                                % if ($_->{'epcs'}->{'number'} != 0) {
+                                <a href="/show_epcs/<%= $adption->{$year}->{$month}->{'oc'}->{$oc_key}->{'analysis'}->{'ymd'} %>/<%= $_->{'uid8'} %>"
+                                ><span style="color: darkblue; font-size: 0.6rem;">preview_epcs_<%= $_->{'epcs'}->{'number'} %></span></a>
+                                % }
+                                <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
+                            % }
+                        % } 
+                    </p>
+
+                % }
+            % }
+        % }
+    % }
+</div>
 
 @@ epcs_display.html.ep
 % layout 'default';
@@ -573,7 +709,7 @@ __DATA__
 <p style="text-align: center; font-size: 0.8rem;">
   <a onclick="history.back()" style="color: blue;">go back</a>
    | 
-  <a href="/<%= $c->session('user') %>">home</a>
+  <a href="/<%= $c->session('user') %>/datastatic">datastatic</a>
 </p>
 <hr style="width: 300px; margin: 0 auto; margin-top: 5px; margin-bottom: 5px;">
 
@@ -581,7 +717,7 @@ __DATA__
   <form action="/nice_record" method="post">
     <div style="position: relative;">
       <div style="position: absolute; width: 20%;">
-        <label style="height: 2rem; line-height: 2rem;" for="email" onclick="change_nicetype(this)">输出:</label>
+        <label style="height: 2rem; line-height: 2rem;" for="email" onclick="change_nicetype(this)">支出:</label>
       </div>
       <div style="position: absolute; width: 80%; margin-left: 20%;">
         <input type="hidden" name="nice_type" id="nice_type" value="0">
@@ -619,9 +755,9 @@ __DATA__
 
 <div style="padding: 5px 5px 5px 5px; margin: 0px 5px 0px 5px; border: 0.5px solid black;">
   <p style="margin: 0 auto; font-size: 0.8rem;">
-    <b>month detail: </b> <br>
+    <b>平均: </b> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      total oc : <%= $adption->{'oc_conclusion'}->{'total_balance'} %>
+      总支出 : <%= $adption->{'oc_conclusion'}->{'total_balance'} %>
       </span> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
       total ic : <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %>
@@ -637,7 +773,7 @@ __DATA__
   </p>
   <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
   <p style="margin: 0 auto;">
-    <b style="font-size: 0.8rem;">ic ( <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %> $):</b> <br>
+    <b style="font-size: 0.8rem;">退入 ( <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %> $):</b> <br>
     % foreach( @{$adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'detail'}} ){
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
       <%= $_->{'nice'} %> [<%= $_->{'tags'} %>] : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
@@ -653,7 +789,7 @@ __DATA__
     % if ($oc_key <= $YmdHMS->{'d'}) {
       <p style="margin: 0 auto;">
         % if (scalar @{$adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'detail'}} != 0) {
-          <b style="font-size: 0.8rem;"><%= $oc_key %> ( <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'analysis'}->{'total_balance'} %> $):</b> <br>
+          <b style="font-size: 0.8rem;"><%= $YmdHMS->{'m'} . '-' . $oc_key %> ( <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'analysis'}->{'total_balance'} %> $):</b> <br>
           % foreach( @{$adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'oc'}->{$oc_key}->{'detail'}} ){
             <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
               <%= $_->{'nice'} %> [<%= $_->{'tags'} %>] : <%= $_->{'balance'} %> <%= $_->{'create_time'} %>
@@ -674,7 +810,7 @@ __DATA__
             <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
           % }
         % } else {
-          <b style="font-size: 0.8rem;"><%= $oc_key %> ( 0 $):</b> <br>
+          <b style="font-size: 0.8rem;"><%= $YmdHMS->{'m'} . '-' . $oc_key %> ( 0 $):</b> <br>
           <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
             null record.
           </span>
@@ -687,11 +823,11 @@ __DATA__
 
 <script>
   function change_nicetype(obj) {
-    if (obj.innerText == '输出:') {
-      obj.innerText = '输入:'
+    if (obj.innerText == '支出:') {
+      obj.innerText = '退入:'
       document.getElementById('nice_type').value = 1;
     } else {
-      obj.innerText = '输出:'
+      obj.innerText = '支出:'
       document.getElementById('nice_type').value = 0;
     }
   }
