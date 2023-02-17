@@ -609,7 +609,7 @@ __DATA__
 </p>
 <hr style="width: 300px; margin: 0 auto; margin-top: 5px; margin-bottom: 5px;">
 
-<form action="/set_datastatic_date" method="post">
+<form style="margin-left: 20%;" action="/set_datastatic_date" method="post">
   <div>
     <label for="name">start date: </label>
     <input type="date" name="date1" id="date1" value="<%= $date1 %>">
@@ -618,7 +618,7 @@ __DATA__
     <label for="email">end date: </label>
     <input type="date" name="date2" id="date2" value="<%= $date2 %>">
   </div>
-  <div >
+  <div style="margin-left: 50%;">
     <input type="submit" value="Subscribe!">
   </div>
 </form>
