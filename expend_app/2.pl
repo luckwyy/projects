@@ -183,7 +183,7 @@ sub analysis_ic_oc_line_info {
 
 # input: expend_record file path output: [ { a=>aa, b=>bb}, {} ]
 sub get_one_expend_record_file_hash {
-    my ($user, $file) = @_;
+    my ($user, $file, $limit_balance) = @_;
     my $res = {};
     $res->{'detail'} = [];
     $res->{'analysis'} = {};
@@ -192,7 +192,7 @@ sub get_one_expend_record_file_hash {
         my $arrs = get_txt_content_lines($file);
         foreach(@$arrs) {
             my $line_hash = analysis_ic_oc_line_info($_);
-            push(@{$res->{'detail'}}, $line_hash) if $line_hash->{'is_deleted'} ne '1'; # only get not deleted line info
+            push(@{$res->{'detail'}}, $line_hash) if $line_hash->{'is_deleted'} ne '1' and $line_hash->{'balance'} >= $limit_balance; # only get not deleted line info
         }
         if(scalar @{$res->{'detail'}} != 0 ) {
             $res->{'analysis'} = get_one_expend_record_file_hash_analysis($user, $res->{'detail'});
@@ -257,35 +257,6 @@ sub write_one_line_expend_record {
     return;
 };
 
-sub get_input_month_expend_info {
-  my ($user, $year, $month) = @_;
-
-  my $res = {};
-  $res->{'oc_month'} = {};
-
-  my $days = 31;
-  my $ic_file_path = "$expenditure_dir/$user/$year/$month/ic.rec";
-
-  $res->{'ic'} = get_one_expend_record_file_hash($user, $ic_file_path);
-
-  while($days > 0) {
-    my $flag = `date -d $year-$month-$days +%s`;
-    if ($flag =~ m/^\d+$/) {
-      $days = convert_one_to_two_number($days);
-      my $file_path = "$expenditure_dir/$user/$year/$month/oc$days.rec";
-      my $hash = get_one_expend_record_file_hash($user, $file_path);
-      $res->{'oc'}->{"$days"} = $hash;
-      if(scalar @{$hash->{'detail'}} != 0) {
-        $res->{'oc_month'}->{'total_balance'} += $hash->{'analysis'}->{'total_balance'};
-      }
-    }
-    $days -= 1;
-  }
-  
-  # say Dumper $res;
-  return $res;
-};
-
 # get relative date interval
 sub get_interval_date {
     my ($start, $end) = @_;
@@ -316,7 +287,7 @@ sub get_interval_date {
 };
 # common sub for get input date expend_info
 sub get_input_self_adption_date_expend_info {
-    my ($user, $start, $end) = @_;
+    my ($user, $limit_balance, $start, $end) = @_;
     ($start, $end) = get_interval_date($start, $end);
     my $res = {};
     $res->{'oc_conclusion'} = {};
@@ -326,14 +297,14 @@ sub get_input_self_adption_date_expend_info {
         chomp $end;
         my ($year, $month, $day) = ($1, $2, $3) if $end =~ m/(.*)-(.*)-(.*)/;
         my $file_path = "$expenditure_dir/$user/$year/$month/oc$day.rec";
-        my $hash = get_one_expend_record_file_hash($user, $file_path);
+        my $hash = get_one_expend_record_file_hash($user, $file_path, $limit_balance);
         $res->{$year}->{$month}->{'oc'}->{$day} = $hash;
         if(scalar @{$hash->{'detail'}} != 0) {
             $res->{'oc_conclusion'}->{'total_balance'} += $hash->{'analysis'}->{'total_balance'};
         }
-
+        
         $file_path = "$expenditure_dir/$user/$year/$month/ic.rec";
-        $hash = get_one_expend_record_file_hash($user, $file_path);
+        $hash = get_one_expend_record_file_hash($user, $file_path, $limit_balance);
         $res->{$year}->{$month}->{'ic'} = $hash;
         # if(scalar @{$hash->{'detail'}} != 0) {
         #     $res->{'ic_conclusion'}->{'total_balance'} += $hash->{'analysis'}->{'total_balance'};
@@ -381,7 +352,7 @@ get '/:user' => sub ($c) {
 
     #   my $ic_oc = get_input_month_expend_info($user, $YmdHMS->{'y'}, $YmdHMS->{'m'});
     #   say Dumper $ic_oc;
-    my $adption = get_input_self_adption_date_expend_info($user, "$YmdHMS->{'y'}-$YmdHMS->{'m'}");
+    my $adption = get_input_self_adption_date_expend_info($user, 0, "$YmdHMS->{'y'}-$YmdHMS->{'m'}");
     #   say Dumper $adption;
 
     #   $c->stash(ic_oc => $ic_oc);
@@ -418,7 +389,13 @@ post '/nice_record' => sub ($c) {
         $c->redirect_to("/$user");
         return;
     }
-    my ($nice_content, $nice_balance) = ($1, $2) if $nice =~ m/(.*?)(\d+\.{0,1}\d*)$/;
+    my ($nice_content, $nice_balance) = ('', ''); ($1, $2) if $nice =~ m/(.*?)(\d+\.{0,1}\d*)$/;
+    if($nice =~ m/(.*?)((\-?\d+[\.\+\-\*\/]?)*\-?\d+$)/) {
+        ($nice_content, $nice_balance) = ($1, $2);
+        $nice_balance = eval $nice_balance;
+    } else {
+        ($nice_content, $nice_balance) = ($1, $2) if $nice =~ m/(.*?)(\d+\.{0,1}\d*)$/;
+    }
 
     unless (check_nice_content($nice_content, $nice_tags) and check_nice_balance($nice_balance)) {
         $c->flash(msg_color => 'red', msg => 'nice illegal');
@@ -535,9 +512,11 @@ post '/set_datastatic_date' => sub ($c) {
     my $user = $c->session->{'user'};
     my $date1 = $c->param('date1');
     my $date2 = $c->param('date2');
+    my $limit_balance = $c->param('limit_balance');
 
     $c->flash(date1 => $date1);
     $c->flash(date2 => $date2);
+    $c->flash(limit_balance => $limit_balance);
 
     $c->redirect_to("/$user/datastatic");
 };
@@ -551,6 +530,7 @@ get '/:user/datastatic' => sub ($c) {
 
     my $date1 = $c->flash('date1');
     my $date2 = $c->flash('date2');
+    my $limit_balance = $c->flash('limit_balance');
 
     if ('' eq $date1 and '' eq $date2) {
         $date1 = `date +\%Y-\%m-\%d`;
@@ -569,11 +549,16 @@ get '/:user/datastatic' => sub ($c) {
         chomp $date2;
     }
 
+    if ($limit_balance eq '' or !defined $limit_balance) {
+        $limit_balance = 0;
+    }
+
     my $YmdHMS = get_YmdMHS_hash();
-    my $adption = get_input_self_adption_date_expend_info($user, $date1, $date2);
+    my $adption = get_input_self_adption_date_expend_info($user, $limit_balance, $date1, $date2);
     
     $c->stash(date1 => $date1);
     $c->stash(date2 => $date2);
+    $c->stash(limit_balance => $limit_balance);
     $c->stash(YmdHMS => $YmdHMS);
     $c->stash(adption => $adption);
     $c->render(template => 'datastatic');
@@ -594,6 +579,7 @@ __DATA__
 % my $user = $c->session('user');
 % my $date1 = $c->stash('date1');
 % my $date2 = $c->stash('date2');
+% my $limit_balance = $c->stash('limit_balance');
 % my $YmdHMS = $c->stash('YmdHMS');
 % my $adption = $c->stash('adption');
 
@@ -617,6 +603,10 @@ __DATA__
   <div>
     <label for="email">end date: </label>
     <input type="date" name="date2" id="date2" value="<%= $date2 %>">
+  </div>
+  <div>
+    <label for="email">limit balance: </label>
+    <input type="number" name="limit_balance" id="limit_balance" min="0" max="1000" value="<%= $limit_balance %>">
   </div>
   <div style="margin-left: 50%;">
     <input type="submit" value="Subscribe!">
