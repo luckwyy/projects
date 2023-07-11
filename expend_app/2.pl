@@ -183,7 +183,7 @@ sub analysis_ic_oc_line_info {
 
 # input: expend_record file path output: [ { a=>aa, b=>bb}, {} ]
 sub get_one_expend_record_file_hash {
-    my ($user, $file, $limit_balance) = @_;
+    my ($user, $file, $limit_balance, $key_word) = @_;
     my $res = {};
     $res->{'detail'} = [];
     $res->{'analysis'} = {};
@@ -192,7 +192,14 @@ sub get_one_expend_record_file_hash {
         my $arrs = get_txt_content_lines($file);
         foreach(@$arrs) {
             my $line_hash = analysis_ic_oc_line_info($_);
-            push(@{$res->{'detail'}}, $line_hash) if $line_hash->{'is_deleted'} ne '1' and $line_hash->{'balance'} >= $limit_balance; # only get not deleted line info
+            if ($line_hash->{'is_deleted'} ne '1' and $line_hash->{'balance'} >= $limit_balance) { # only get not deleted line info
+                push(@{$res->{'detail'}}, $line_hash) if $key_word eq "";
+                unless ($key_word eq "") {
+                    if ($line_hash->{'nice'} =~ m/$key_word/ or $line_hash->{'tags'} =~ m/$key_word/) {
+                        push(@{$res->{'detail'}}, $line_hash);
+                    }
+                }
+            }
         }
         if(scalar @{$res->{'detail'}} != 0 ) {
             $res->{'analysis'} = get_one_expend_record_file_hash_analysis($user, $res->{'detail'});
@@ -287,7 +294,7 @@ sub get_interval_date {
 };
 # common sub for get input date expend_info
 sub get_input_self_adption_date_expend_info {
-    my ($user, $limit_balance, $start, $end) = @_;
+    my ($user, $limit_balance, $key_word, $start, $end) = @_;
     ($start, $end) = get_interval_date($start, $end);
     my $res = {};
     $res->{'oc_conclusion'} = {};
@@ -297,14 +304,14 @@ sub get_input_self_adption_date_expend_info {
         chomp $end;
         my ($year, $month, $day) = ($1, $2, $3) if $end =~ m/(.*)-(.*)-(.*)/;
         my $file_path = "$expenditure_dir/$user/$year/$month/oc$day.rec";
-        my $hash = get_one_expend_record_file_hash($user, $file_path, $limit_balance);
+        my $hash = get_one_expend_record_file_hash($user, $file_path, $limit_balance, $key_word);
         $res->{$year}->{$month}->{'oc'}->{$day} = $hash;
         if(scalar @{$hash->{'detail'}} != 0) {
             $res->{'oc_conclusion'}->{'total_balance'} += $hash->{'analysis'}->{'total_balance'};
         }
         
         $file_path = "$expenditure_dir/$user/$year/$month/ic.rec";
-        $hash = get_one_expend_record_file_hash($user, $file_path, $limit_balance);
+        $hash = get_one_expend_record_file_hash($user, $file_path, $limit_balance, $key_word);
         $res->{$year}->{$month}->{'ic'} = $hash;
         # if(scalar @{$hash->{'detail'}} != 0) {
         #     $res->{'ic_conclusion'}->{'total_balance'} += $hash->{'analysis'}->{'total_balance'};
@@ -352,7 +359,7 @@ get '/:user' => sub ($c) {
 
     #   my $ic_oc = get_input_month_expend_info($user, $YmdHMS->{'y'}, $YmdHMS->{'m'});
     #   say Dumper $ic_oc;
-    my $adption = get_input_self_adption_date_expend_info($user, 0, "$YmdHMS->{'y'}-$YmdHMS->{'m'}");
+    my $adption = get_input_self_adption_date_expend_info($user, 0, "", "$YmdHMS->{'y'}-$YmdHMS->{'m'}");
     #   say Dumper $adption;
 
     #   $c->stash(ic_oc => $ic_oc);
@@ -513,10 +520,12 @@ post '/set_datastatic_date' => sub ($c) {
     my $date1 = $c->param('date1');
     my $date2 = $c->param('date2');
     my $limit_balance = $c->param('limit_balance');
+    my $key_word = $c->param('key_word');
 
     $c->flash(date1 => $date1);
     $c->flash(date2 => $date2);
     $c->flash(limit_balance => $limit_balance);
+    $c->flash(key_word => $key_word);
 
     $c->redirect_to("/$user/datastatic");
 };
@@ -531,6 +540,7 @@ get '/:user/datastatic' => sub ($c) {
     my $date1 = $c->flash('date1');
     my $date2 = $c->flash('date2');
     my $limit_balance = $c->flash('limit_balance');
+    my $key_word = $c->flash('key_word');
 
     if ('' eq $date1 and '' eq $date2) {
         $date1 = `date +\%Y-\%m-\%d`;
@@ -553,12 +563,17 @@ get '/:user/datastatic' => sub ($c) {
         $limit_balance = 0;
     }
 
+    if ($key_word eq '' or !defined $key_word) {
+        $key_word = "";
+    }
+
     my $YmdHMS = get_YmdMHS_hash();
-    my $adption = get_input_self_adption_date_expend_info($user, $limit_balance, $date1, $date2);
+    my $adption = get_input_self_adption_date_expend_info($user, $limit_balance, $key_word, $date1, $date2);
     
     $c->stash(date1 => $date1);
     $c->stash(date2 => $date2);
     $c->stash(limit_balance => $limit_balance);
+    $c->stash(key_word => $key_word);
     $c->stash(YmdHMS => $YmdHMS);
     $c->stash(adption => $adption);
     $c->render(template => 'datastatic');
@@ -580,6 +595,7 @@ __DATA__
 % my $date1 = $c->stash('date1');
 % my $date2 = $c->stash('date2');
 % my $limit_balance = $c->stash('limit_balance');
+% my $key_word = $c->stash('key_word');
 % my $YmdHMS = $c->stash('YmdHMS');
 % my $adption = $c->stash('adption');
 
@@ -597,19 +613,23 @@ __DATA__
 
 <form style="margin-left: 20%;" action="/set_datastatic_date" method="post">
   <div>
-    <label for="name">start date: </label>
+    <label for="date1">start date: </label>
     <input type="date" name="date1" id="date1" value="<%= $date1 %>">
   </div>
   <div>
-    <label for="email">end date: </label>
+    <label for="date2">end date: </label>
     <input type="date" name="date2" id="date2" value="<%= $date2 %>">
   </div>
   <div>
-    <label for="email">limit balance: </label>
-    <input type="number" name="limit_balance" id="limit_balance" min="0" max="1000" value="<%= $limit_balance %>">
+    <label for="limit_balance">limit balance: </label>
+    <input type="number" name="limit_balance" id="limit_balance" min="0" max="10000" value="<%= $limit_balance %>">
+  </div>
+  <div>
+    <label for="key_word">key word: </label>
+    <input type="text" name="key_word" id="key_word" value="<%= $key_word %>">
   </div>
   <div style="margin-left: 50%;">
-    <input type="submit" value="Subscribe!">
+    <input type="submit" value="search!">
   </div>
 </form>
 
