@@ -10,7 +10,7 @@ __DATA__
 
 @@ index.html.ep
 % layout 'default';
-% title 'dai';
+% title 'loan';
 <div>
 <label for="P">贷（单位：万）:</label>
 <input type="text" id="P" name="P" value="50"/>
