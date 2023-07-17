@@ -11,35 +11,85 @@ __DATA__
 @@ index.html.ep
 % layout 'default';
 % title 'loan';
-<div>
-<label for="P">贷（单位：万）:</label>
-<input type="text" id="P" name="P" value="50"/>
-<select id="P_select"></select>
-</div>
+<style>
+  /* 设置表单容器的宽度为页面宽度 */
+  .form-container {
+    max-width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  
+  /* 设置每一行的样式 */
+  .form-row {
+    display: flex;
+    margin-bottom: 10px;
+  }
+  
+  .form-label {
+    flex: 1;
+    margin-right: 10px;
+    white-space: normal;
+  }
+  
+  /* 设置输入框和下拉菜单的宽度 */
+  .form-input, .form-select {
+    flex: 1;
+    margin-right: 10px;
+  }
+    /* 设置两个单选按钮的样式 */
+  .form-radio {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* 设置四个按钮的样式 */
+  .form-buttons {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  /* 设置每个按钮的宽度 */
+  .form-button {
+    flex: 1;
+    margin-right: 10px;
+  }
+</style>
+<div class="form-container">
+  <div class="form-row">
+    <label class="form-label" for="P">贷（单位：万）:</label>
+    <input class="form-input" type="text" id="P" name="P" value="50"/>
+    <select class="form-select" id="P_select"></select>
+  </div>
+  <div class="form-row">
+    <label class="form-label" for="r">年利率（单位：%）:</label>
+    <input class="form-input" type="text" id="r" name="r" value="3.1"/>
+    <select class="form-select" id="r_select"></select>
+  </div>
+  <div class="form-row">
+    <label class="form-label" for="N">期（单位：月）:</label>
+    <input class="form-input" type="text" id="N" name="N" value="240"/>
+    <select class="form-select" id="N_select"></select>
+  </div>
 
-<div>
-<label for="r">年利率（单位：%）:</label>
-<input type="text" id="r" name="r" value="3.1"/>
-<select id="r_select"></select>
-</div>
-
-<div>
-<label for="N">期（单位：月）:</label>
-<input type="text" id="N" name="N" value="240"/>
-<select id="N_select"></select>
-</div>
-
-<div>
-<input type="radio" id="type1" name="type" value="1" checked>
-<label for="type1">等额本息</label>
-<input type="radio" id="type2" name="type" value="2">
-<label for="type2">等额本金</label>
-</div>
-<div>
-<button name="button" onclick="calc()">计算</button>
-<button name="button" onclick="accumulate()">组合贷款</button>
-<button name="button" onclick="clear_accumulate()">清空</button>
-<button id="export-btn">导出csv</button>
+    <div class="form-row">
+      <label for="radio1" class="form-label">贷款方式:</label>
+      <div class="form-radio">
+        <input type="radio" id="type1" name="type" value="1" checked>
+        <label for="type1">等额本息</label>
+      </div>
+      <div class="form-radio">
+        <input type="radio" id="type2" name="type" value="2">
+        <label for="type2">等额本金</label>
+      </div>
+    </div>
+    
+    <div class="form-row form-buttons">
+      <button class="form-button" name="button" onclick="calc()">计算</button>
+      <button class="form-button" name="button" onclick="accumulate()">组合贷款</button>
+      <button class="form-button" name="button" onclick="clear_accumulate()">清空</button>
+      <button class="form-button" id="export-btn">导出csv</button>
+    </div>
 
 </div>
 
