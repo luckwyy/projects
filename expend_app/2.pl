@@ -763,6 +763,16 @@ __DATA__
 <hr style="width: 100%; margin: 0 auto; margin-top: 5px;">
 <hr style="width: 100%; margin: 0 auto; margin-top: 3px; margin-bottom: 15px;">
 
+<script>
+  function current_month_days() {
+    var currentDate = new Date();
+    var currentYear = currentDate.getFullYear();
+    var currentMonth = currentDate.getMonth();
+    var lastDayCurrentMonth = new Date(currentYear, currentMonth, 0).getDate();
+    return lastDayCurrentMonth;
+  }
+</script>
+
 <div style="padding: 5px 5px 5px 5px; margin: 0px 5px 0px 5px; border: 0.5px solid black;">
   <p style="margin: 0 auto; font-size: 0.8rem;">
     <b>平均: </b> <br>
@@ -770,16 +780,30 @@ __DATA__
       总支出 : <%= $adption->{'oc_conclusion'}->{'total_balance'} %>
       </span> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      total ic : <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %>
+      总退入 : <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %>
       </span> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      avg (<%= $adption->{'oc_conclusion'}->{'total_balance'} %> / <%= $YmdHMS->{'d'} %>) : 
-      <%= sprintf("%.3f", $adption->{'oc_conclusion'}->{'total_balance'} / $YmdHMS->{'d'} ) %>
+      平均 : 
       </span> <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
-      avg ((<%= $adption->{'oc_conclusion'}->{'total_balance'} %> - <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %>) / <%= $YmdHMS->{'d'} %>) : 
-      <%= sprintf("%.3f", ($adption->{'oc_conclusion'}->{'total_balance'} - $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'}) / $YmdHMS->{'d'} ) %>
-      </span> <br>
+       (<%= $adption->{'oc_conclusion'}->{'total_balance'} %> / <%= $YmdHMS->{'d'} %>) : 
+      % my $avg_without_ic = sprintf("%.2f", $adption->{'oc_conclusion'}->{'total_balance'} / $YmdHMS->{'d'} );
+      <%= $avg_without_ic %>
+      </span> 
+      <span style="padding-left: 3px; font-size: 0.7rem;" id="avg_without_ic_total_month">
+      </span>
+      <script>
+        let avg = '<%= $avg_without_ic %>';
+        let days = current_month_days();
+        document.getElementById('avg_without_ic_total_month').innerText = '月预计总：'+(avg*days);
+      </script>
+      <br>
+      <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
+      （减退入） ((<%= $adption->{'oc_conclusion'}->{'total_balance'} %> - <%= $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'} %>) / <%= $YmdHMS->{'d'} %>) : 
+      % my $avg_sub_ic = sprintf("%.2f", ($adption->{'oc_conclusion'}->{'total_balance'} - $adption->{$YmdHMS->{'y'}}->{$YmdHMS->{'m'}}->{'ic'}->{'analysis'}->{'total_balance'}) / $YmdHMS->{'d'} );
+      <%= $avg_sub_ic %>
+      </span>
+      <br>
   </p>
   <hr style="width: 100%; margin: 0 auto; margin-top: 5px; margin-bottom: 5px; color: gray;">
   <p style="margin: 0 auto;">
