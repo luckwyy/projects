@@ -759,6 +759,9 @@ __DATA__
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">京东</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">淘宝</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">拼多多</span> |
+  <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">加油</span> |
+  <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">中石油</span> |
+  <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">中石化</span> |
 </p>
 <hr style="width: 100%; margin: 0 auto; margin-top: 5px;">
 <hr style="width: 100%; margin: 0 auto; margin-top: 3px; margin-bottom: 15px;">
@@ -795,7 +798,7 @@ __DATA__
       <script>
         let avg = '<%= $avg_without_ic %>';
         let days = current_month_days();
-        document.getElementById('avg_without_ic_total_month').innerText = '月预计总：'+(avg*days);
+        document.getElementById('avg_without_ic_total_month').innerText = '月预计总：'+(avg*days).toFixed(2);
       </script>
       <br>
       <span style="margin-left: 5px; padding-left: 3px; font-size: 0.7rem; border-left: 1px solid gray;">
