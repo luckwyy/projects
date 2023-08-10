@@ -762,6 +762,7 @@ __DATA__
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">加油</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">中石油</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">中石化</span> |
+  <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">加油卡</span> |
 </p>
 <hr style="width: 100%; margin: 0 auto; margin-top: 5px;">
 <hr style="width: 100%; margin: 0 auto; margin-top: 3px; margin-bottom: 15px;">
