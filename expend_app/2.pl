@@ -744,7 +744,7 @@ __DATA__
 </div>
 <hr style="width: 300px; margin: 0 auto; margin-top: 5px; margin-bottom: 15px;">
 
-<p style="width: 300px; margin: 0 auto; text-align: center; font-size: 0.9rem;">
+<p style="width: 350px; margin: 0 auto; text-align: center; font-size: 0.9rem;">
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">早饭</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">午饭</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">晚饭</span> |
@@ -763,6 +763,8 @@ __DATA__
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">中石油</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">中石化</span> |
   <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">加油卡</span> |
+  <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">信用卡</span> |
+  <span style="color: black; margin: 0px 5px 0px 5px;" onclick="add_tags(this)">农行</span> |
 </p>
 <hr style="width: 100%; margin: 0 auto; margin-top: 5px;">
 <hr style="width: 100%; margin: 0 auto; margin-top: 3px; margin-bottom: 15px;">
